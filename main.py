@@ -9,6 +9,7 @@ import asyncio
 
 token = 'your.token.here'
 bot=discord.Bot(intents=discord.Intents.default())
+# it is ideal to put out the information as soon as possible, but there may be overrides
 times=[
     datetime.time(2,0,tzinfo=datetime.UTC),
     datetime.time(8,0,tzinfo=datetime.UTC),
@@ -31,30 +32,37 @@ class monitor(commands.Cog):
             channel_id = server_vars.get("tracking_channel",guild.id)
             if channel_id is not None:
                 await update_guild(guild.id,channel_id)
-    
+
+# this function needs to be a coroutine since other coroutines are called
 async def update_guild(guild: int, to_channel: int):
     channel = bot.get_channel(to_channel)
     enabled_basins = server_vars.get("basins",guild)
-    if enabled_basins is not None:        
+    if enabled_basins is not None:
         for i in range(len(atcf.cyclones)):
             cyc_id = atcf.cyclones[i]
-            basin = cyc_id[2]
-            wind = atcf.winds[i]
-            mph = round(wind * 1.15077945 / 5) * 5
+            basin = cyc_id[2] # this points to the letter that denotes which basin the TC formed in
+            wind = atcf.winds[i] # winds are tracked internally in knots (kt)
+            mph = round(wind * 1.15077945 / 5) * 5 # per standard, we round to the nearest 5
             kmh = round(wind * 1.852 / 5) * 5
             name = atcf.names[i]
             timestamp = atcf.timestamps[i]
             lat = atcf.lats[i]
             long = atcf.longs[i]
             pressure = atcf.pressures[i]
+            # we should ignore wind speeds for designating an invest
+            # all wind speed values shown are in knots rounded to the nearest 5 (except for ones after > operators)
             if name == "INVEST":
                 tc_class = "INVEST"
                 name = cyc_id
+                emoji = "<:low:1109997033227558923>"
             elif wind < 35:
                 tc_class = "TROPICAL DEPRESSION"
+                emoji = "<:td:1109994651169079297>"
             elif wind > 34 and wind < 65:
                 tc_class = "TROPICAL STORM"
+                emoji = "<:ts:1109994652368650310>"
             else:
+                # determine the term to use based on the basin
                 if basin == "L" or basin == "E" or basin == "C":
                     tc_class = "HURRICANE"
                 elif basin == "W":
@@ -64,9 +72,28 @@ async def update_guild(guild: int, to_channel: int):
                         tc_class = "SUPER TYPHOON"
                 else:
                     tc_class = "CYCLONE"
+
+                # for custom emoji to work, the bot needs to be in the server it's from
+                # you also need the emoji's ID
+                if wind < 85:
+                    emoji = "<:cat1:1109994357257420902>"
+                elif wind > 84 and wind < 100:
+                    emoji = "<:cat2:1109994593895862364>"
+                elif wind > 99 and wind < 115:
+                    emoji = "<:cat3:1109994641094357024>"
+                elif wind > 114 and wind < 140:
+                    emoji = "<:cat4:1109994643057295401>"
+                elif wind > 139 and wind < 155:
+                    emoji = "<:cat5:1109994644386893864>"
+                elif wind > 154 and wind < 170:
+                    emoji = "<:cat5intense:1111376977664954470>"
+                else:
+                    emoji = "<:cat5veryintense:1111378049448026126>"
+            # this check is really long since it needs to accomodate for every possible situation
             send_message = (basin == "L" and enabled_basins[0] == "1") or ((basin == "E" or basin == "C") and enabled_basins[1] == "1") or (basin == "W" and enabled_basins[2] == "1") or ((basin == "A" or basin == "B") and enabled_basins[3] == "1") or (basin == "S" and enabled_basins[4] == "1") or (basin == "P" and enabled_basins[5] == "1")
             if send_message:
-                await channel.send(f"{tc_class} {name} as of <t:{timestamp}:f>\nPosition: {lat}, {long}\nMax 1-minute sustained winds: {wind} kt ({mph} mph/{kmh} kph)\nMinimum central pressure: {pressure} mb")
+                await channel.send(f"# {emoji} {tc_class} {name}\nAs of <t:{timestamp}:f>, the center of {name} was located near {lat}, {long}. Maximum 1-minute sustained winds were {wind} kt ({mph} mph/{kmh} kph) and the minimum central pressure was {pressure} mb.")
+        # it is best practice to use official sources when possible
         await channel.send("For north Atlantic and eastern Pacific storms, see https://www.nhc.noaa.gov for more information.\nFor others, check your RSMC website or see https://www.metoc.navy.mil/jtwc/jtwc.html for more information.")
 
 @bot.event
@@ -75,6 +102,7 @@ async def on_ready():
     print(f"We have logged in as {bot.user}")
     for guild in bot.guilds:
         print(guild)
+    # this will trigger the __init__ function which will start the automated monitoring
     cog = monitor(bot)
 
 @bot.event
@@ -127,7 +155,7 @@ async def set_basins(
     sio: Option(bool, "South Indian Ocean (including western Australia)"),
     spac: Option(bool, "South Pacific (including eastern Australia)")
 ):
-    enabled_basins = str(int(natl)) + str(int(epac)) + str(int(wpac)) + str(int(nio)) + str(int(sio)) + str(int(spac))
+    enabled_basins = str(int(natl)) + str(int(epac)) + str(int(wpac)) + str(int(nio)) + str(int(sio)) + str(int(spac)) # this effectively represents a 6-bit binary value
     server_vars.write("basins",enabled_basins,ctx.guild_id)
     await ctx.respond("Basin configuration saved.",ephemeral=True)
 
@@ -137,6 +165,7 @@ async def update_all(ctx):
     atcf.get_data()
     for guild in bot.guilds:
         channel_id = server_vars.get("tracking_channel",guild.id)
+        # attempt to update only if the tracking channel is set
         if channel_id is not None:
             await update_guild(guild.id,channel_id)
     await ctx.respond("Updated!",ephemeral=True)
@@ -173,7 +202,7 @@ async def announce_basin(
 
 @bot.slash_command(name="invite",description="Add this bot to your server!")
 async def invite(ctx):
-    # If you plan on using this for yourself, remember to change the OAuth2 URL.
+    # Make sure to change this if you are running your own instance of the bot!
     await ctx.respond("Here's my invite link!\n<https://discord.com/api/oauth2/authorize?client_id=1107462705004167230&permissions=67233792&scope=bot>",ephemeral=True)
 
 bot.run(token)

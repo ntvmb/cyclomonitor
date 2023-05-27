@@ -2,6 +2,7 @@ import json
 json_file = 'serverVars.json'
 
 def write(var_name: str,value,guild: int):
+    # if the json file exists, load it, otherwise initialize a blank list
     try:
         with open(json_file,'r') as f:
             data = json.load(f)
@@ -12,6 +13,7 @@ def write(var_name: str,value,guild: int):
             server_data = i.get(str(guild))
             server_data.update({var_name: value})
             break
+    # this code segment is run if the loop was not broken
     else:
         data.append({
             str(guild): {
@@ -27,6 +29,7 @@ def write(var_name: str,value,guild: int):
     with open(json_file,'w') as f:
         f.write(json.dumps(data, indent=4))
 
+# this is expected to be assigned to a variable, so we return None if no data can be loaded
 def get(var_name: str,guild: int):
     try:
         with open(json_file,'r') as f:

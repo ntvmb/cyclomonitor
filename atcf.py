@@ -14,7 +14,7 @@ def get_data():
     basins = []
     winds = []
     pressures = []
-    r = requests.get(url, verify=False)
+    r = requests.get(url, verify=False) # the US NRL is the only official source for ATCF data, but your device may not trust the website
     open('atcf_sector_file','wb').write(r.content)
     file = open('atcf_sector_file',mode='r')
     for line in file:
@@ -22,6 +22,7 @@ def get_data():
         cyclones.append(storm[0])
         names.append(storm[1])
         time = storm[2] + storm[3]
+        # convert the timestamp from the given data to Unix time
         timestamp = datetime.datetime(int('20'+time[0]+time[1]),int(time[2]+time[3]),int(time[4]+time[5]),int(time[6]+time[7]))
         utc_time = calendar.timegm(timestamp.utctimetuple())
         timestamps.append(utc_time)
