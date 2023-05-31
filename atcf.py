@@ -14,7 +14,7 @@ def get_data():
     basins = []
     winds = []
     pressures = []
-    r = requests.get(url, verify=False) # the US NRL is the only official source for ATCF data, but your device may not trust the website
+    r = requests.get(url, verify=False)
     open('atcf_sector_file','wb').write(r.content)
     file = open('atcf_sector_file',mode='r')
     for line in file:
