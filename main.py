@@ -118,8 +118,9 @@ async def update_guild(guild: int, to_channel: int):
                 if was_sent:
                     break
             else:
-                await channel.send(f"No TCs or areas of interest active at this time.\nNext automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
+                await channel.send(f"No TCs or areas of interest active at this time.")
         # it is best practice to use official sources when possible
+        await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
         await channel.send("For north Atlantic and eastern Pacific storms, see https://www.nhc.noaa.gov for more information.\nFor others, check your RSMC website or see https://www.metoc.navy.mil/jtwc/jtwc.html for more information.")
 
 @bot.event
@@ -237,7 +238,6 @@ async def announce_basin(
 
 @bot.slash_command(name="invite",description="Add this bot to your server!")
 async def invite(ctx):
-    # Remember to change the link if you are running your own instance of the bot!
     await ctx.respond("Here's my invite link!\n<https://discord.com/api/oauth2/authorize?client_id=1107462705004167230&permissions=67233792&scope=bot>",ephemeral=True)
 
 @bot.slash_command(name="statistics",description="Show this bot's records")
