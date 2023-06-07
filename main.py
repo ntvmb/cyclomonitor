@@ -8,7 +8,7 @@ import atcf
 import datetime
 import calendar
 
-token = 'your.token.here'
+token = 'your.token.here' # placeholder
 bot=discord.Bot(intents=discord.Intents.default())
 # it is ideal to put out the information as soon as possible, but there may be overrides
 times=[
@@ -29,7 +29,7 @@ class monitor(commands.Cog):
     @tasks.loop(time=times)
     async def auto_update(self):
         try:
-            prev_timestamps = atcf.timestamps
+            prev_timestamps = atcf.timestamps.copy()
         except:
             prev_timestamps = []
         atcf.get_data()
@@ -48,7 +48,7 @@ class monitor(commands.Cog):
                 channel_id = server_vars.get("tracking_channel",guild.id)
                 if channel_id is not None:
                     channel = bot.get_channel(channel_id)
-                    await channel.send("Automatic update suppressed as ATCF is taking longer to update than expected, or all active systems dissipated recently.")
+                    await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- All active systems dissipated recently\n-A manual update was called recently")
                     await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
             return
         for guild in bot.guilds:
@@ -153,6 +153,7 @@ async def update_guild(guild: int, to_channel: int):
 async def on_ready():
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,name="cyclones around the world!"))
     print(f"We have logged in as {bot.user}")
+    global_vars.write("guild_count",len(bot.guilds))
     for guild in bot.guilds:
         print(guild)
     global cog
@@ -235,6 +236,7 @@ async def update_all(ctx):
         if channel_id is not None:
             await update_guild(guild.id,channel_id)
     await ctx.respond("Updated!",ephemeral=True)
+    atcf.reset()
 
 @bot.slash_command(name="announce_all",description="Make an announcement to all servers")
 @commands.is_owner()
