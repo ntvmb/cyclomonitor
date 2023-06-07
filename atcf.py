@@ -31,3 +31,14 @@ def get_data():
         basins.append(storm[6])
         winds.append(int(storm[7]))
         pressures.append(int(storm[8]))
+
+def reset():
+    global cyclones, names, timestamps, lats, longs, basins, winds, pressures
+    cyclones = []
+    names = []
+    timestamps = []
+    lats = []
+    longs = []
+    basins = []
+    winds = []
+    pressures = []    

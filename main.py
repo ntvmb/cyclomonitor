@@ -28,7 +28,29 @@ class monitor(commands.Cog):
 
     @tasks.loop(time=times)
     async def auto_update(self):
+        try:
+            prev_timestamps = atcf.timestamps
+        except:
+            prev_timestamps = []
         atcf.get_data()
+        for i in range(len(atcf.cyclones)):
+            suppressed = []
+            try:
+                suppressed.append(prev_timestamps[i] == atcf.timestamps[i]) # will this system request for a suppression?
+            except:
+                suppressed.append(False)
+        # only suppress an automatic update if all active systems requested a suppression
+        for do_suppress in suppressed:
+            if not do_suppress:
+                break
+        else:
+            for guild in bot.guilds:
+                channel_id = server_vars.get("tracking_channel",guild.id)
+                if channel_id is not None:
+                    channel = bot.get_channel(channel_id)
+                    await channel.send("Automatic update suppressed as ATCF is taking longer to update than expected, or all active systems dissipated recently.")
+                    await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
+            return
         for guild in bot.guilds:
             channel_id = server_vars.get("tracking_channel",guild.id)
             if channel_id is not None:
@@ -63,7 +85,7 @@ async def update_guild(guild: int, to_channel: int):
             if pressure == 0:
                 pressure = math.nan
             sent_list = []
-            # we should ignore wind speeds for designating an invest
+            # we should ignore wind speeds when marking an invest
             # all wind speed values shown are in knots rounded to the nearest 5 (except for ones after > operators)
             if name == "INVEST":
                 tc_class = "INVEST"
@@ -103,6 +125,10 @@ async def update_guild(guild: int, to_channel: int):
                     emoji = "<:cat5intense:1111376977664954470>"
                 else:
                     emoji = "<:cat5veryintense:1111378049448026126>"
+            if tc_class == "INVEST":
+                display_name = name
+            else:
+                display_name = f"{cyc_id} ({name})"
             # update TC records
             if (wind > int(current_TC_record[5])) or (wind == int(current_TC_record[5]) and pressure < int(current_TC_record[8])):
                 global_vars.write("strongest_storm",[emoji,tc_class,cyc_id,name,str(timestamp),str(wind),str(mph),str(kmh),str(pressure)])
@@ -113,7 +139,7 @@ async def update_guild(guild: int, to_channel: int):
             if math.isnan(pressure):
                 pressure = "N/A"
             if send_message:
-                await channel.send(f"# {emoji} {tc_class} {name}\nAs of <t:{timestamp}:f>, the center of {name} was located near {lat}, {long}. Maximum 1-minute sustained winds were {wind} kt ({mph} mph/{kmh} kph) and the minimum central pressure was {pressure} mb.")
+                await channel.send(f"# {emoji} {tc_class} {display_name}\nAs of <t:{timestamp}:f>, the center of {name} was located near {lat}, {long}. Maximum 1-minute sustained winds were {wind} kt ({mph} mph/{kmh} kph) and the minimum central pressure was {pressure} mb.")
             for was_sent in sent_list:
                 if was_sent:
                     break
@@ -164,8 +190,11 @@ async def set_tracking_channel(ctx,channel):
     if not isinstance(channel, discord.TextChannel):
         await ctx.respond(f"Error: Must be a text channel!",ephemeral=True)
     else:
-        server_vars.write("tracking_channel",channel.id,ctx.guild_id)
-        await ctx.respond(f"Successfully set the tracking channel to {channel}!",ephemeral=True)
+        if channel.permissions_for(ctx.me).send_messages:
+            server_vars.write("tracking_channel",channel.id,ctx.guild_id)
+            await ctx.respond(f"Successfully set the tracking channel to {channel}!",ephemeral=True)
+        else:
+            await ctx.respond(f"I cannot send messages to that channel! Give me permission to send messages there, or try a different channel.",ephemeral=True)
 
 @bot.slash_command(name="update",description="Cause CycloMonitor to update immediately")
 @guild_only()
@@ -178,6 +207,7 @@ async def update(ctx):
         await ctx.respond("Updated!",ephemeral=True)
     else:
         await ctx.respond("Tracking channel is not set!",ephemeral=True)
+    atcf.reset()
         
 @bot.slash_command(name="set_basins",description="Set basins to track")
 @guild_only()
@@ -238,7 +268,7 @@ async def announce_basin(
 
 @bot.slash_command(name="invite",description="Add this bot to your server!")
 async def invite(ctx):
-    await ctx.respond("Here's my invite link!\n<https://discord.com/api/oauth2/authorize?client_id=1107462705004167230&permissions=67233792&scope=bot>",ephemeral=True)
+    await ctx.respond("Here's my invite link!\n<https://discord.com/api/oauth2/authorize?client_id=1107462705004167230&permissions=67496000&scope=bot>",ephemeral=True)
 
 @bot.slash_command(name="statistics",description="Show this bot's records")
 async def statistics(ctx):
@@ -269,5 +299,19 @@ async def yikes(ctx):
             channel = bot.get_channel(channel_id)
             await channel.send(f"The yikes count is now {count}!")    
     await ctx.respond(f"# Yikes!\nThe yikes count is now {count}.")
+
+@bot.slash_command(name="get_data",description="Get the latest ATCF data without triggering an update")
+@commands.is_owner()
+async def get_data(ctx):
+    atcf.get_data()
+    with open('atcf_sector_file','r') as f:
+        content = f.read()
+        await ctx.respond(f"ATCF data downloaded.\n{content}",ephemeral=True)
+
+@bot.slash_command(name="atcf_reset",description="Reset ATCF data back to its default state.")
+@commands.is_owner()
+async def atcf_reset(ctx):
+    atcf.reset()
+    await ctx.respond("ATCF data reset.",ephemeral=True)
 
 bot.run(token)
