@@ -8,7 +8,7 @@ import atcf
 import datetime
 import calendar
 
-token = 'your.token.here' # placeholder
+token = 'your.token.here'
 bot=discord.Bot(intents=discord.Intents.default())
 # it is ideal to put out the information as soon as possible, but there may be overrides
 times=[
@@ -33,8 +33,8 @@ class monitor(commands.Cog):
         except:
             prev_timestamps = []
         atcf.get_data()
+        suppressed = []
         for i in range(len(atcf.cyclones)):
-            suppressed = []
             try:
                 suppressed.append(prev_timestamps[i] == atcf.timestamps[i]) # will this system request for a suppression?
             except:
@@ -48,7 +48,7 @@ class monitor(commands.Cog):
                 channel_id = server_vars.get("tracking_channel",guild.id)
                 if channel_id is not None:
                     channel = bot.get_channel(channel_id)
-                    await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- All active systems dissipated recently\n-A manual update was called recently")
+                    await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- All active systems dissipated recently\n- A manual update was called recently")
                     await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
             return
         for guild in bot.guilds:
@@ -176,7 +176,8 @@ async def on_guild_remove(guild: discord.Guild):
     global_vars.write("guild_count",count)
 
 @bot.slash_command(name="ping",description="Test the response time")
-async def ping(ctx: commands.Context):
+async def ping(ctx):
+    await ctx.defer(ephemeral=True)
     await ctx.respond(f"Pong! `"+str(math.floor(bot.latency*1000))+" ms`",ephemeral=True)
 
 @bot.slash_command(name="set_tracking_channel",description="Set the tracking channel")
@@ -188,6 +189,7 @@ async def ping(ctx: commands.Context):
     description="The channel to use"
 )
 async def set_tracking_channel(ctx,channel):
+    await ctx.defer(ephemeral=True)
     if not isinstance(channel, discord.TextChannel):
         await ctx.respond(f"Error: Must be a text channel!",ephemeral=True)
     else:
@@ -201,6 +203,7 @@ async def set_tracking_channel(ctx,channel):
 @guild_only()
 @commands.has_guild_permissions(manage_messages=True)
 async def update(ctx):
+    await ctx.defer(ephemeral=True)
     channel_id = server_vars.get("tracking_channel",ctx.guild_id)
     atcf.get_data()
     if channel_id is not None:
@@ -222,6 +225,7 @@ async def set_basins(
     nio: Option(bool, "North Indian Ocean (Arabian Sea and Bay of Bengal)"),
     shem: Option(bool, "Southern hemisphere")
 ):
+    await ctx.defer(ephemeral=True)
     enabled_basins = str(int(natl)) + str(int(epac)) + str(int(cpac)) + str(int(wpac)) + str(int(nio)) + str(int(shem)) # this effectively represents a 6-bit binary value
     server_vars.write("basins",enabled_basins,ctx.guild_id)
     await ctx.respond("Basin configuration saved.",ephemeral=True)
@@ -229,6 +233,7 @@ async def set_basins(
 @bot.slash_command(name="update_all",description="Force CycloMonitor to update all guilds immediately")
 @commands.is_owner()
 async def update_all(ctx):
+    await ctx.defer(ephemeral=True)
     atcf.get_data()
     for guild in bot.guilds:
         channel_id = server_vars.get("tracking_channel",guild.id)
@@ -236,7 +241,6 @@ async def update_all(ctx):
         if channel_id is not None:
             await update_guild(guild.id,channel_id)
     await ctx.respond("Updated!",ephemeral=True)
-    atcf.reset()
 
 @bot.slash_command(name="announce_all",description="Make an announcement to all servers")
 @commands.is_owner()
@@ -244,6 +248,7 @@ async def announce_all(
     ctx: discord.ApplicationContext,
     announcement: Option(str, "Message to announce")
 ):
+    await ctx.defer(ephemeral=True)
     for guild in bot.guilds:
         channel_id = server_vars.get("tracking_channel",guild.id)
         if channel_id is not None:
@@ -258,6 +263,7 @@ async def announce_basin(
     basin: Option(str, "Basin which this applies to",choices=["natl","epac","cpac","wpac","nio","shem"]),
     announcement: Option(str, "Message to announce")
 ):
+    await ctx.defer(ephemeral=True)
     for guild in bot.guilds:
         channel_id = server_vars.get("tracking_channel",guild.id)
         enabled_basins = server_vars.get("basins",guild.id)
@@ -274,6 +280,7 @@ async def invite(ctx):
 
 @bot.slash_command(name="statistics",description="Show this bot's records")
 async def statistics(ctx):
+    await ctx.defer(ephemeral=True)
     strongest_storm = global_vars.get("strongest_storm")
     yikes_count = global_vars.get("yikes_count")
     guild_count = global_vars.get("guild_count")
@@ -289,6 +296,7 @@ Current yikes counter: {yikes_count}"
 
 @bot.slash_command(name="yikes",description="Yikes!")
 async def yikes(ctx):
+    await ctx.defer(ephemeral=True)
     count = global_vars.get("yikes_count")
     if count is not None:
         count += 1
@@ -305,6 +313,7 @@ async def yikes(ctx):
 @bot.slash_command(name="get_data",description="Get the latest ATCF data without triggering an update")
 @commands.is_owner()
 async def get_data(ctx):
+    await ctx.defer(ephemeral=True)
     atcf.get_data()
     with open('atcf_sector_file','r') as f:
         content = f.read()
