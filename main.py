@@ -5,8 +5,10 @@ import math
 import server_vars
 import global_vars
 import atcf
+import errors
 import datetime
 import calendar
+import warnings
 
 token = 'your.token.here'
 bot=discord.Bot(intents=discord.Intents.default())
@@ -48,7 +50,7 @@ class monitor(commands.Cog):
                 channel_id = server_vars.get("tracking_channel",guild.id)
                 if channel_id is not None:
                     channel = bot.get_channel(channel_id)
-                    await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- All active systems dissipated recently\n- A manual update was called recently")
+                    await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- ATCF is down\n- All active systems dissipated recently\n- A manual update was called recently")
                     await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
             return
         for guild in bot.guilds:
@@ -63,7 +65,7 @@ class monitor(commands.Cog):
             if channel_id is not None:
                 channel = bot.get_channel(channel_id)
                 await channel.send(f"CycloMonitor encountered an error while updating. This incident has be reported to the bot owner.")
-        print(f"CycloMonitor encountered an error while updating. Here's what happened:\n{error}")
+        raise errors.AutoUpdateError(f"CycloMonitor encountered an error while updating. Here's what happened:\n{error}")
 
 # this function needs to be a coroutine since other coroutines are called
 async def update_guild(guild: int, to_channel: int):
@@ -175,6 +177,14 @@ async def on_guild_remove(guild: discord.Guild):
     server_vars.remove_guild(guild.id)
     global_vars.write("guild_count",count)
 
+@bot.event
+async def on_application_command_error(ctx: discord.ApplicationContext, error):
+    if isinstance(error, commands.errors.MissingPermissions) or isinstance(error, commands.errors.NotOwner):
+        await ctx.respond("You do not have permission to use this command. This incident will be reported.",ephemeral=True)
+        warnings.warn(f"User {ctx.author} attempted to execute {ctx.command}, but does not have permission to do so.", Warning)
+    else:
+        raise error
+
 @bot.slash_command(name="ping",description="Test the response time")
 async def ping(ctx):
     await ctx.defer(ephemeral=True)
@@ -280,7 +290,7 @@ async def invite(ctx):
 
 @bot.slash_command(name="statistics",description="Show this bot's records")
 async def statistics(ctx):
-    await ctx.defer(ephemeral=True)
+    await ctx.defer()
     strongest_storm = global_vars.get("strongest_storm")
     yikes_count = global_vars.get("yikes_count")
     guild_count = global_vars.get("guild_count")
@@ -314,10 +324,13 @@ async def yikes(ctx):
 @commands.is_owner()
 async def get_data(ctx):
     await ctx.defer(ephemeral=True)
-    atcf.get_data()
-    with open('atcf_sector_file','r') as f:
-        content = f.read()
-        await ctx.respond(f"ATCF data downloaded.\n{content}",ephemeral=True)
+    try:
+        atcf.get_data()
+        with open('atcf_sector_file','r') as f:
+            content = f.read()
+            await ctx.respond(f"ATCF data downloaded.\n{content}",ephemeral=True)
+    except:
+        await ctx.respond("Could not get data!",ephemeral=True)
 
 @bot.slash_command(name="atcf_reset",description="Reset ATCF data back to its default state.")
 @commands.is_owner()
