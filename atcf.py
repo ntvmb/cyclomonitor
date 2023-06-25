@@ -4,6 +4,9 @@ import requests
 
 url = 'https://www.nrlmry.navy.mil/tcdat/sectors/atcf_sector_file'
 
+class ATCFError(Exception):
+    pass
+
 def get_data():
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures
     cyclones = []
@@ -14,7 +17,10 @@ def get_data():
     basins = []
     winds = []
     pressures = []
-    r = requests.get(url, verify=False)
+    try:
+        r = requests.get(url, verify=False)
+    except:
+        raise ATCFError("Failed to get ATCF data.")
     open('atcf_sector_file','wb').write(r.content)
     file = open('atcf_sector_file',mode='r')
     for line in file:
@@ -41,4 +47,4 @@ def reset():
     longs = []
     basins = []
     winds = []
-    pressures = []    
+    pressures = []

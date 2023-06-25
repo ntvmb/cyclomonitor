@@ -34,7 +34,11 @@ class monitor(commands.Cog):
             prev_timestamps = atcf.timestamps.copy()
         except:
             prev_timestamps = []
-        atcf.get_data()
+        try:
+            atcf.get_data()
+        except atcf.ATCFError:
+            warnings.warn("Failed to get ATCF data. Aborting update.", Warning)
+            return
         suppressed = []
         for i in range(len(atcf.cyclones)):
             try:
@@ -65,7 +69,7 @@ class monitor(commands.Cog):
             if channel_id is not None:
                 channel = bot.get_channel(channel_id)
                 await channel.send(f"CycloMonitor encountered an error while updating. This incident has be reported to the bot owner.")
-        raise errors.AutoUpdateError(f"CycloMonitor encountered an error while updating. Here's what happened:\n{error}")
+        raise errors.AutoUpdateError(f"CycloMonitor encountered an error while updating.")
 
 # this function needs to be a coroutine since other coroutines are called
 async def update_guild(guild: int, to_channel: int):
@@ -183,6 +187,7 @@ async def on_application_command_error(ctx: discord.ApplicationContext, error):
         await ctx.respond("You do not have permission to use this command. This incident will be reported.",ephemeral=True)
         warnings.warn(f"User {ctx.author} attempted to execute {ctx.command}, but does not have permission to do so.", Warning)
     else:
+        await ctx.respond(f"An exception occurred while executing this command.\n{error}",ephemeral=True)
         raise error
 
 @bot.slash_command(name="ping",description="Test the response time")
