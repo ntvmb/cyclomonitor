@@ -27,6 +27,23 @@ class monitor(commands.Cog):
 
     def cog_unload(self):
         self.auto_update.cancel()
+    
+    def should_suppress(self,prev_timestamps: list):
+        suppressed = []
+        for i in range(len(atcf.cyclones)):
+            try:
+                # will this system request for a suppression?
+                suppressed.append(prev_timestamps[i] >= atcf.timestamps[i])
+            except:
+                suppressed.append(False)
+        if len(atcf.cyclones) == 0:
+            suppressed.append(False)
+        # only suppress an automatic update if all active systems requested a suppression
+        for do_suppress in suppressed:
+            if not do_suppress:
+                return False
+        else:
+            return True
 
     @tasks.loop(time=times)
     async def auto_update(self):
@@ -39,24 +56,21 @@ class monitor(commands.Cog):
         except atcf.ATCFError:
             warnings.warn("Failed to get ATCF data. Aborting update.", Warning)
             return
-        suppressed = []
-        for i in range(len(atcf.cyclones)):
+        if self.should_suppress(prev_timestamps):
+            # try alternate source
             try:
-                suppressed.append(prev_timestamps[i] == atcf.timestamps[i]) # will this system request for a suppression?
-            except:
-                suppressed.append(False)
-        # only suppress an automatic update if all active systems requested a suppression
-        for do_suppress in suppressed:
-            if not do_suppress:
-                break
-        else:
-            for guild in bot.guilds:
-                channel_id = server_vars.get("tracking_channel",guild.id)
-                if channel_id is not None:
-                    channel = bot.get_channel(channel_id)
-                    await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- ATCF is down\n- All active systems dissipated recently\n- A manual update was called recently")
-                    await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
-            return
+                atcf.get_data_alt()
+            except atcf.ATCFError:
+                warnings.warn("Failed to get ATCF data. Aborting update.", Warning)
+                return
+            if self.should_suppress(prev_timestamps):
+                for guild in bot.guilds:
+                    channel_id = server_vars.get("tracking_channel",guild.id)
+                    if channel_id is not None:
+                        channel = bot.get_channel(channel_id)
+                        await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- ATCF is down\n- All active systems dissipated recently\n- A manual update was called recently")
+                        await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
+                    return
         for guild in bot.guilds:
             channel_id = server_vars.get("tracking_channel",guild.id)
             if channel_id is not None:
@@ -97,7 +111,10 @@ async def update_guild(guild: int, to_channel: int):
                 tc_class = "INVEST"
                 name = cyc_id
                 emoji = "<:low:1109997033227558923>"
-            elif wind < 35:
+            elif wind < 25 and not name == "INVEST":
+                tc_class = "REMNANTS OF"
+                emoji = "<:remnants:1109994646932836386>"
+            elif wind > 24 and wind < 35:
                 tc_class = "TROPICAL DEPRESSION"
                 emoji = "<:td:1109994651169079297>"
             elif wind > 34 and wind < 65:
@@ -227,6 +244,20 @@ async def update(ctx):
     else:
         await ctx.respond("Tracking channel is not set!",ephemeral=True)
     atcf.reset()
+    
+@bot.slash_command(name="update_alt",description="Cause CycloMonitor to update immediately (Fallback source)")
+@guild_only()
+@commands.has_guild_permissions(manage_messages=True)
+async def update(ctx):
+    await ctx.defer(ephemeral=True)
+    channel_id = server_vars.get("tracking_channel",ctx.guild_id)
+    atcf.get_data_alt()
+    if channel_id is not None:
+        await update_guild(ctx.guild_id,channel_id)
+        await ctx.respond("Updated!",ephemeral=True)
+    else:
+        await ctx.respond("Tracking channel is not set!",ephemeral=True)
+    atcf.reset()
         
 @bot.slash_command(name="set_basins",description="Set basins to track")
 @guild_only()
@@ -250,6 +281,18 @@ async def set_basins(
 async def update_all(ctx):
     await ctx.defer(ephemeral=True)
     atcf.get_data()
+    for guild in bot.guilds:
+        channel_id = server_vars.get("tracking_channel",guild.id)
+        # attempt to update only if the tracking channel is set
+        if channel_id is not None:
+            await update_guild(guild.id,channel_id)
+    await ctx.respond("Updated!",ephemeral=True)
+
+@bot.slash_command(name="update_all_alt",description="Force CycloMonitor to update all guilds immediately (Fallback source)")
+@commands.is_owner()
+async def update_all_alt(ctx):
+    await ctx.defer(ephemeral=True)
+    atcf.get_data_alt()
     for guild in bot.guilds:
         channel_id = server_vars.get("tracking_channel",guild.id)
         # attempt to update only if the tracking channel is set
@@ -334,8 +377,20 @@ async def get_data(ctx):
         with open('atcf_sector_file','r') as f:
             content = f.read()
             await ctx.respond(f"ATCF data downloaded.\n{content}",ephemeral=True)
-    except:
-        await ctx.respond("Could not get data!",ephemeral=True)
+    except Exception as e:
+        await ctx.respond(f"Could not get data!\n{e}",ephemeral=True)
+
+@bot.slash_command(name="get_data_alt",description="Get the latest ATCF data without triggering an update (Fallback source)")
+@commands.is_owner()
+async def get_data_alt(ctx):
+    await ctx.defer(ephemeral=True)
+    try:
+        atcf.get_data_alt()
+        with open('atcf_sector_file','r') as f:
+            content = f.read()
+            await ctx.respond(f"ATCF data downloaded.\n{content}",ephemeral=True)
+    except Exception as e:
+        await ctx.respond(f"Could not get data!\n{e}",ephemeral=True)
 
 @bot.slash_command(name="atcf_reset",description="Reset ATCF data back to its default state.")
 @commands.is_owner()
