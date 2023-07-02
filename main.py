@@ -168,6 +168,8 @@ async def update_guild(guild: int, to_channel: int):
                     break
             else:
                 await channel.send(f"No TCs or areas of interest active at this time.")
+            if len(atcf.cyclones) == 0:
+                await channel.send(f"No TCs or areas of interest active at this time.")
         # it is best practice to use official sources when possible
         await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
         await channel.send("For north Atlantic and eastern Pacific storms, see https://www.nhc.noaa.gov for more information.\nFor others, check your RSMC website or see https://www.metoc.navy.mil/jtwc/jtwc.html for more information.")

@@ -39,6 +39,8 @@ def get_data():
         basins.append(storm[6])
         winds.append(int(storm[7]))
         pressures.append(int(storm[8]))
+    if len(cyclones) == 0:
+        get_data_alt()
 
 def get_data_alt():
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures
