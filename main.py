@@ -168,8 +168,8 @@ async def update_guild(guild: int, to_channel: int):
                     break
             else:
                 await channel.send(f"No TCs or areas of interest active at this time.")
-            if len(atcf.cyclones) == 0:
-                await channel.send(f"No TCs or areas of interest active at this time.")
+        if len(atcf.cyclones) == 0:
+            await channel.send(f"No TCs or areas of interest active at this time.")
         # it is best practice to use official sources when possible
         await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
         await channel.send("For north Atlantic and eastern Pacific storms, see https://www.nhc.noaa.gov for more information.\nFor others, check your RSMC website or see https://www.metoc.navy.mil/jtwc/jtwc.html for more information.")
@@ -203,10 +203,16 @@ async def on_guild_remove(guild: discord.Guild):
 @bot.event
 async def on_application_command_error(ctx: discord.ApplicationContext, error):
     if isinstance(error, commands.errors.MissingPermissions) or isinstance(error, commands.errors.NotOwner):
-        await ctx.respond("You do not have permission to use this command. This incident will be reported.",ephemeral=True)
-        warnings.warn(f"User {ctx.author} attempted to execute {ctx.command}, but does not have permission to do so.", Warning)
+        try:
+            await ctx.respond("You do not have permission to use this command. This incident will be reported.",ephemeral=True)
+        except:
+            warnings.warn("Failed to send response.",Warning,stacklevel=2)
+        warnings.warn(f"User {ctx.author} attempted to execute {ctx.command}, but does not have permission to do so.", Warning, stacklevel=2)
     else:
-        await ctx.respond(f"An exception occurred while executing this command.\n{error}",ephemeral=True)
+        try:
+            await ctx.respond(f"An exception occurred while executing this command.\n{error}",ephemeral=True)
+        except:
+            warnings.warn("Failed to send response.",Warning,stacklevel=2)
         raise error
 
 @bot.slash_command(name="ping",description="Test the response time")
@@ -333,6 +339,27 @@ async def announce_basin(
             if send_message:
                 await channel.send(f"Announcement for {basin}:\n{announcement}")
     await ctx.respond(f"Announced for {basin}:\n{announcement}",ephemeral=True)
+    
+@bot.slash_command(name="announce_file",description="Announce to all servers from a text file")
+@commands.is_owner()
+async def announce_file(
+    ctx: discord.ApplicationContext,
+    file: Option(discord.SlashCommandOptionType.attachment,"Text file")
+):
+    await ctx.defer(ephemeral=True)
+    print(file.content_type)
+    if file.content_type.startswith('text'):
+        with open('announcement.md','wb') as f:
+            await file.save(f)
+        announcement = open('announcement.md','r').read()
+        for guild in bot.guilds:
+            channel_id = server_vars.get("tracking_channel",guild.id)
+            if channel_id is not None:
+                channel = bot.get_channel(channel_id)
+                await channel.send(announcement)
+        await ctx.respond(f"Announced to all servers:\n{str(announcement)}",ephemeral=True)
+    else:
+        await ctx.respond("Error: Not a text file!",ephemeral=True)
 
 @bot.slash_command(name="invite",description="Add this bot to your server!")
 async def invite(ctx):
