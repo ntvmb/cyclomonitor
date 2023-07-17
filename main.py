@@ -9,6 +9,11 @@ import errors
 import datetime
 import calendar
 import warnings
+import logging
+from uptime import *
+from tendo import singleton
+
+me = singleton.SingleInstance() # Prevent more than one instance from running at once
 
 token = 'your.token.here'
 bot=discord.Bot(intents=discord.Intents.default())
@@ -19,13 +24,18 @@ times=[
     datetime.time(14,0,tzinfo=datetime.UTC),
     datetime.time(20,0,tzinfo=datetime.UTC)
 ]
+logname='bot.log'
+logging.basicConfig(filename=logname,
+                    filemode='a',
+                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    level=logging.INFO)
 
 class monitor(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.auto_update.start()
 
     def cog_unload(self):
+        logging.info("Stopping monitor...")
         self.auto_update.cancel()
     
     def should_suppress(self,prev_timestamps: list):
@@ -34,6 +44,7 @@ class monitor(commands.Cog):
             try:
                 # will this system request for a suppression?
                 suppressed.append(prev_timestamps[i] >= atcf.timestamps[i])
+                logging.info(f"Comparison of timestamps for {atcf.cyclones[i]} returned {suppressed[i]}.")
             except:
                 suppressed.append(False)
         if len(atcf.cyclones) == 0:
@@ -47,23 +58,26 @@ class monitor(commands.Cog):
 
     @tasks.loop(time=times)
     async def auto_update(self):
+        logging.info("Beginning automatic update...")
         try:
             prev_timestamps = atcf.timestamps.copy()
         except:
             prev_timestamps = []
         try:
             atcf.get_data()
-        except atcf.ATCFError:
-            warnings.warn("Failed to get ATCF data. Aborting update.", Warning)
+        except atcf.ATCFError as e:
+            logging.error(f"{e}\nFailed to get ATCF data. Aborting update.")
             return
         if self.should_suppress(prev_timestamps):
             # try alternate source
             try:
+                logging.info("Suppression from main source called. Trying fallback source...")
                 atcf.get_data_alt()
-            except atcf.ATCFError:
-                warnings.warn("Failed to get ATCF data. Aborting update.", Warning)
+            except atcf.ATCFError as e:
+                logging.error(f"{e}\nFailed to get ATCF data. Aborting update.")
                 return
             if self.should_suppress(prev_timestamps):
+                logging.warn("The most recent automatic update was suppressed. Investigate the cause.")
                 for guild in bot.guilds:
                     channel_id = server_vars.get("tracking_channel",guild.id)
                     if channel_id is not None:
@@ -83,10 +97,11 @@ class monitor(commands.Cog):
             if channel_id is not None:
                 channel = bot.get_channel(channel_id)
                 await channel.send(f"CycloMonitor encountered an error while updating. This incident has be reported to the bot owner.")
-        raise errors.AutoUpdateError(f"CycloMonitor encountered an error while updating.")
+        logging.error(f"CycloMonitor encountered an error while updating: {error}")
 
 # this function needs to be a coroutine since other coroutines are called
 async def update_guild(guild: int, to_channel: int):
+    logging.info(f"Performing update routines for guild {guild}")
     channel = bot.get_channel(to_channel)
     enabled_basins = server_vars.get("basins",guild)
     current_TC_record = global_vars.get("strongest_storm") # record-keeping
@@ -102,6 +117,7 @@ async def update_guild(guild: int, to_channel: int):
             lat = atcf.lats[i]
             long = atcf.longs[i]
             pressure = atcf.pressures[i]
+            tc_class = atcf.tc_classes[i]
             if pressure == 0:
                 pressure = math.nan
             sent_list = []
@@ -111,15 +127,26 @@ async def update_guild(guild: int, to_channel: int):
                 tc_class = "INVEST"
                 name = cyc_id
                 emoji = "<:low:1109997033227558923>"
-            elif wind < 25 and not name == "INVEST":
+            elif tc_class == "EX":
+                tc_class = "POST-TROPICAL CYCLONE"
+                emoji = "<:ex:1109994645431259187>"
+            elif (tc_class == "LO" or tc_class == "DB" or tc_class == "WV") and not name == "INVEST":
                 tc_class = "REMNANTS OF"
                 emoji = "<:remnants:1109994646932836386>"
             elif wind > 24 and wind < 35:
-                tc_class = "TROPICAL DEPRESSION"
-                emoji = "<:td:1109994651169079297>"
+                if not tc_class == "SD":
+                    tc_class = "TROPICAL DEPRESSION"
+                    emoji = "<:td:1109994651169079297>"
+                else:
+                    tc_class = "SUBTROPICAL DEPRESSION"
+                    emoji = "<:sd:1109994648300163142>"
             elif wind > 34 and wind < 65:
-                tc_class = "TROPICAL STORM"
-                emoji = "<:ts:1109994652368650310>"
+                if not tc_class == "SS":
+                    tc_class = "TROPICAL STORM"
+                    emoji = "<:ts:1109994652368650310>"
+                else:
+                    tc_class = "SUBTROPICAL STORM"
+                    emoji = "<:ss:1109994649654935563>"
             else:
                 # determine the term to use based on the basin
                 if basin == "ATL" or basin == "EPAC" or basin == "CPAC":
@@ -177,16 +204,15 @@ async def update_guild(guild: int, to_channel: int):
 @bot.event
 async def on_ready():
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,name="cyclones around the world!"))
-    print(f"We have logged in as {bot.user}")
+    logging.info(f"We have logged in as {bot.user}")
     global_vars.write("guild_count",len(bot.guilds))
-    for guild in bot.guilds:
-        print(guild)
     global cog
-    # this will trigger the __init__ function which will start the automated monitoring
     cog = monitor(bot)
+    cog.auto_update.start()
 
 @bot.event
 async def on_guild_join(guild: discord.Guild):
+    logging.info(f"Bot added to guild: {guild.name}")
     count = len(bot.guilds)
     global_vars.write("guild_count",count)
     for channel in guild.text_channels:
@@ -196,6 +222,7 @@ async def on_guild_join(guild: discord.Guild):
 
 @bot.event
 async def on_guild_remove(guild: discord.Guild):
+    logging.info(f"Bot removed from guild: {guild.name}")
     count = len(bot.guilds)
     server_vars.remove_guild(guild.id)
     global_vars.write("guild_count",count)
@@ -206,14 +233,14 @@ async def on_application_command_error(ctx: discord.ApplicationContext, error):
         try:
             await ctx.respond("You do not have permission to use this command. This incident will be reported.",ephemeral=True)
         except:
-            warnings.warn("Failed to send response.",Warning,stacklevel=2)
-        warnings.warn(f"User {ctx.author} attempted to execute {ctx.command}, but does not have permission to do so.", Warning, stacklevel=2)
+            logging.error("Failed to send response.")
+        logging.warn(f"User {ctx.author} attempted to execute {ctx.command}, but does not have permission to do so.")
     else:
         try:
             await ctx.respond(f"An exception occurred while executing this command.\n{error}",ephemeral=True)
         except:
-            warnings.warn("Failed to send response.",Warning,stacklevel=2)
-        raise error
+            logging.error("Failed to send response.")
+        logging.error(error)
 
 @bot.slash_command(name="ping",description="Test the response time")
 async def ping(ctx):
@@ -256,7 +283,7 @@ async def update(ctx):
 @bot.slash_command(name="update_alt",description="Cause CycloMonitor to update immediately (Fallback source)")
 @guild_only()
 @commands.has_guild_permissions(manage_messages=True)
-async def update(ctx):
+async def update_alt(ctx):
     await ctx.defer(ephemeral=True)
     channel_id = server_vars.get("tracking_channel",ctx.guild_id)
     atcf.get_data_alt()
@@ -378,7 +405,8 @@ Strongest cyclone recorded by this bot: {strongest_storm[0]} {strongest_storm[1]
 - Wind peak: {strongest_storm[5]} kt ({strongest_storm[6]} mph/{strongest_storm[7]} kph)\n\
 - Pressure peak: {strongest_storm[8]} mb\n\
 - Time recorded: <t:{strongest_storm[4]}:f>\n\
-Current yikes counter: {yikes_count}"
+Current yikes counter: {yikes_count}\n\
+Bot uptime: {process_uptime_human_readable()}"
     )
 
 @bot.slash_command(name="yikes",description="Yikes!")
@@ -394,7 +422,8 @@ async def yikes(ctx):
         channel_id = server_vars.get("tracking_channel",guild.id)
         if channel_id is not None:
             channel = bot.get_channel(channel_id)
-            await channel.send(f"The yikes count is now {count}!")    
+            await channel.send(f"The yikes count is now {count}!")
+    logging.info(f"The yikes count is now {count}!")
     await ctx.respond(f"# Yikes!\nThe yikes count is now {count}.")
 
 @bot.slash_command(name="get_data",description="Get the latest ATCF data without triggering an update")
