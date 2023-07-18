@@ -10,7 +10,7 @@ class ATCFError(Exception):
     pass
 
 def get_data():
-    global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes
+    global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes, lats_real, longs_real
     cyclones = []
     names = []
     timestamps = []
@@ -20,6 +20,8 @@ def get_data():
     winds = []
     pressures = []
     tc_classes = []
+    lats_real = []
+    longs_real = []
     try:
         ra = requests.get(url, verify=False)
         ri = requests.get(url_interp,verify=False)
@@ -49,17 +51,20 @@ def get_data():
             storm = line.split()
             for i in range(len(cyclones)):
                 if storm[1] == names[i]:
+                    lats_real.append(storm[4])
+                    longs_real.append(storm[5])                    
                     tc_classes.append(storm[7])
                     break
             else:
-                raise ATCFError("How did you get here?")
+                if len(cyclones) > 0:
+                    raise ATCFError("How did you get here?")
                     
     # safeguard for some situations where the main ATCF website is down
     if len(cyclones) == 0:
         get_data_alt()
 
 def get_data_alt():
-    global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes
+    global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes, lats_real, longs_real
     cyclones = []
     names = []
     timestamps = []
@@ -69,6 +74,8 @@ def get_data_alt():
     winds = []
     pressures = []
     tc_classes = []
+    lats_real = []
+    longs_real = []
     try:
         r = requests.get("https://api.knackwx.com/atcf/v1",verify=False)
     except:
@@ -99,13 +106,16 @@ def get_data_alt():
         storm = d.get('interp_sector_file').split()
         for i in range(len(cyclones)):
             if storm[1] == names[i]:
+                lats_real.append(storm[4])
+                longs_real.append(storm[5])
                 tc_classes.append(storm[7])
                 break
         else:
-            raise ATCFError("How did you get here?")        
+            if len(cyclones) > 0:
+                raise ATCFError("How did you get here?")        
 
 def reset():
-    global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes
+    global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes, lats_real, longs_real
     cyclones = []
     names = []
     timestamps = []
@@ -115,3 +125,5 @@ def reset():
     winds = []
     pressures = []
     tc_classes = []
+    lats_real = []
+    longs_real = []

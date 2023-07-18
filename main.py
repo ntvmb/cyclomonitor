@@ -11,11 +11,17 @@ import calendar
 import warnings
 import logging
 from uptime import *
-from tendo import singleton
+try:
+    from tendo import singleton
+except ModuleNotFoundError:
+    pass
 
-me = singleton.SingleInstance() # Prevent more than one instance from running at once
+try:
+    me = singleton.SingleInstance() # Prevent more than one instance from running at once
+except NameError:
+    pass
 
-token = 'your.token.here'
+token = 'your.token.here' # this is a placeholder
 bot=discord.Bot(intents=discord.Intents.default())
 # it is ideal to put out the information as soon as possible, but there may be overrides
 times=[
@@ -27,7 +33,8 @@ times=[
 logname='bot.log'
 logging.basicConfig(filename=logname,
                     filemode='a',
-                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    format='%(asctime)s.%(msec)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO)
 
 class monitor(commands.Cog):
@@ -66,15 +73,15 @@ class monitor(commands.Cog):
         try:
             atcf.get_data()
         except atcf.ATCFError as e:
-            logging.error(f"{e}\nFailed to get ATCF data. Aborting update.")
+            logging.exception("Failed to get ATCF data. Aborting update.")
             return
         if self.should_suppress(prev_timestamps):
             # try alternate source
+            logging.info("Suppression from main source called. Trying fallback source...")
             try:
-                logging.info("Suppression from main source called. Trying fallback source...")
                 atcf.get_data_alt()
             except atcf.ATCFError as e:
-                logging.error(f"{e}\nFailed to get ATCF data. Aborting update.")
+                logging.exception("Failed to get ATCF data. Aborting update.")
                 return
             if self.should_suppress(prev_timestamps):
                 logging.warn("The most recent automatic update was suppressed. Investigate the cause.")
@@ -92,12 +99,12 @@ class monitor(commands.Cog):
     
     @auto_update.error
     async def on_update_error(self, error):
+        logging.exception("CycloMonitor encountered an error while updating.")
         for guild in bot.guilds:
             channel_id = server_vars.get("tracking_channel",guild.id)
             if channel_id is not None:
                 channel = bot.get_channel(channel_id)
                 await channel.send(f"CycloMonitor encountered an error while updating. This incident has be reported to the bot owner.")
-        logging.error(f"CycloMonitor encountered an error while updating: {error}")
 
 # this function needs to be a coroutine since other coroutines are called
 async def update_guild(guild: int, to_channel: int):
@@ -118,6 +125,19 @@ async def update_guild(guild: int, to_channel: int):
             long = atcf.longs[i]
             pressure = atcf.pressures[i]
             tc_class = atcf.tc_classes[i]
+            lat_real = atcf.lats_real[i]
+            long_real = atcf.longs_real[i]
+            # accomodate for basin crossovers
+            if lat_real > 0 and long_real > 30 and long_real < 97:
+                basin = "NIO"
+            if lat_real > 0 and long_real > 97:
+                basin = "WPAC"
+            if lat_real > 0 and long_real < -140:
+                basin = "CPAC"
+            if ((lat_real > 0 and lat_real < 7.6) and long_real < -77) or (lat_real < 10 and long_real < -85) or (lat_real < 15 and long_real < -87) or (lat_real < 16 and long_real < -92.5) or long_real < -100:
+                basin = "EPAC"
+            logging.info(f"Storm {cyc_id} is in {basin}.")
+
             if pressure == 0:
                 pressure = math.nan
             sent_list = []
@@ -233,14 +253,19 @@ async def on_application_command_error(ctx: discord.ApplicationContext, error):
         try:
             await ctx.respond("You do not have permission to use this command. This incident will be reported.",ephemeral=True)
         except:
-            logging.error("Failed to send response.")
-        logging.warn(f"User {ctx.author} attempted to execute {ctx.command}, but does not have permission to do so.")
+            logging.exception("Failed to send response.")
+        logging.warn(f"User {ctx.author} attempted to execute {ctx.command.name}, but does not have permission to do so.")
+    elif isinstance(error, commands.errors.NoPrivateMessage):
+        try:
+            await ctx.respond("This command cannot be used in a DM context.",ephemeral=True)
+        except:
+            logging.exception("Failed to send response.")
     else:
+        logging.exception(f"An exception occurred while executing command {ctx.command.name}.")
         try:
             await ctx.respond(f"An exception occurred while executing this command.\n{error}",ephemeral=True)
         except:
-            logging.error("Failed to send response.")
-        logging.error(error)
+            logging.exception("Failed to send response.")
 
 @bot.slash_command(name="ping",description="Test the response time")
 async def ping(ctx):
@@ -252,7 +277,7 @@ async def ping(ctx):
 @commands.has_guild_permissions(manage_channels=True)
 @option(
     "channel",
-    SlashCommandOptionType.channel,
+    discord.TextChannel,
     description="The channel to use"
 )
 async def set_tracking_channel(ctx,channel):
