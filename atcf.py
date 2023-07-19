@@ -46,19 +46,22 @@ def get_data():
         winds.append(int(storm[7]))
         pressures.append(int(storm[8]))
     file.close()
-    with open('interp_sector_file','r') as interp_file:
-        for line in interp_file:
-            storm = line.split()
-            for i in range(len(cyclones)):
-                if storm[1] == names[i]:
-                    lats_real.append(storm[4])
-                    longs_real.append(storm[5])                    
-                    tc_classes.append(storm[7])
-                    break
-            else:
-                if len(cyclones) > 0:
-                    raise ATCFError("How did you get here?")
-                    
+    file = open('interp_sector_file','r')
+    storms = []
+    for line in file:
+        storms.append(line.split())
+    for tc in cyclones:
+        for storm in storms:
+            cid = storm[0][2] + storm[0][3] + storm[6]
+            if cid == tc:
+                lats_real.append(float(storm[4]))
+                longs_real.append(float(storm[5]))
+                tc_classes.append(storm[7])
+                break
+        else:
+            raise ATCFError("How did you get here?")
+    file.close()
+    
     # safeguard for some situations where the main ATCF website is down
     if len(cyclones) == 0:
         get_data_alt()
@@ -104,15 +107,9 @@ def get_data_alt():
         winds.append(int(storm[7]))
         pressures.append(int(storm[8]))
         storm = d.get('interp_sector_file').split()
-        for i in range(len(cyclones)):
-            if storm[1] == names[i]:
-                lats_real.append(storm[4])
-                longs_real.append(storm[5])
-                tc_classes.append(storm[7])
-                break
-        else:
-            if len(cyclones) > 0:
-                raise ATCFError("How did you get here?")        
+        lats_real.append(float(storm[4]))
+        longs_real.append(float(storm[5]))
+        tc_classes.append(storm[7])
 
 def reset():
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes, lats_real, longs_real

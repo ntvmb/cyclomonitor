@@ -33,7 +33,7 @@ times=[
 logname='bot.log'
 logging.basicConfig(filename=logname,
                     filemode='a',
-                    format='%(asctime)s.%(msec)d %(name)s %(levelname)s %(message)s',
+                    format='%(asctime)s.%(msecs)d %(name)s %(levelname)s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO)
 
@@ -100,11 +100,18 @@ class monitor(commands.Cog):
     @auto_update.error
     async def on_update_error(self, error):
         logging.exception("CycloMonitor encountered an error while updating.")
+        bot_owner = self.bot.get_user(144080789624061962)
+        if bot_owner is not None:
+            try:
+                with open('bot.log','rb') as log:
+                    await bot_owner.send(f"ERROR ERROR PLEASE HELP\nAutomatic update failed due to an exception.\nAttaching log...",file=discord.File(log))
+            except:
+                logging.exception("Failed to send log to the bot owner.")
         for guild in bot.guilds:
             channel_id = server_vars.get("tracking_channel",guild.id)
             if channel_id is not None:
                 channel = bot.get_channel(channel_id)
-                await channel.send(f"CycloMonitor encountered an error while updating. This incident has be reported to the bot owner.")
+                await channel.send(f"CycloMonitor encountered an error while updating. This incident has been reported to the bot owner.")
 
 # this function needs to be a coroutine since other coroutines are called
 async def update_guild(guild: int, to_channel: int):
@@ -130,11 +137,11 @@ async def update_guild(guild: int, to_channel: int):
             # accomodate for basin crossovers
             if lat_real > 0 and long_real > 30 and long_real < 97:
                 basin = "NIO"
-            if lat_real > 0 and long_real > 97:
+            elif lat_real > 0 and long_real > 97:
                 basin = "WPAC"
-            if lat_real > 0 and long_real < -140:
+            elif lat_real > 0 and long_real < -140:
                 basin = "CPAC"
-            if ((lat_real > 0 and lat_real < 7.6) and long_real < -77) or (lat_real < 10 and long_real < -85) or (lat_real < 15 and long_real < -87) or (lat_real < 16 and long_real < -92.5) or long_real < -100:
+            elif lat_real > 0 and ((lat_real < 7.6 and long_real < -77) or (lat_real < 10 and long_real < -85) or (lat_real < 15 and long_real < -87) or (lat_real < 16 and long_real < -92.5) or long_real < -100):
                 basin = "EPAC"
             logging.info(f"Storm {cyc_id} is in {basin}.")
 
