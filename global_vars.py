@@ -1,6 +1,7 @@
 ## see server_vars.py for documentation on related functions
 
 import json
+import logging
 json_file = 'globalVars.json'
 
 def write(var_name: str,value):
@@ -18,7 +19,7 @@ def get(var_name: str):
         with open(json_file,'r') as f:
             data = json.load(f)
     except:
-        print("Warning: Cannot open JSON file")
+        logging.exception("Cannot open JSON file")
         return None
     value = data.get(var_name)
     return value

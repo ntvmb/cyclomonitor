@@ -1,4 +1,5 @@
 import json
+import logging
 json_file = 'serverVars.json'
 
 def write(var_name: str,value,guild: int):
@@ -35,7 +36,7 @@ def get(var_name: str,guild: int):
         with open(json_file,'r') as f:
             data = json.load(f)
     except:
-        print("Warning: Cannot open JSON file")
+        logging.exception("Cannot open JSON file")
         return None
     for i in data:
         if not i.get(str(guild)) == None:
@@ -49,7 +50,7 @@ def remove_guild(guild: int):
         with open(json_file,'r') as f:
             data = json.load(f)
     except:
-        print("Warning: Cannot open JSON file")
+        logging.exception("Cannot open JSON file")
         return None
     for i in data:
         if not i.get(str(guild)) == None:

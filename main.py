@@ -18,10 +18,10 @@ except ModuleNotFoundError:
 
 try:
     me = singleton.SingleInstance() # Prevent more than one instance from running at once
-except NameError:
+except:
     pass
 
-token = 'your.token.here' # this is a placeholder
+token = open('TOKEN','r').read().split()[0]
 bot=discord.Bot(intents=discord.Intents.default())
 # it is ideal to put out the information as soon as possible, but there may be overrides
 times=[
@@ -136,7 +136,7 @@ async def update_guild(guild: int, to_channel: int):
             long_real = atcf.longs_real[i]
             # accomodate for basin crossovers
             if lat_real > 0 and long_real > 30 and long_real < 97:
-                basin = "NIO"
+                basin = "IO"
             elif lat_real > 0 and long_real > 97:
                 basin = "WPAC"
             elif lat_real > 0 and long_real < -140:
@@ -148,34 +148,49 @@ async def update_guild(guild: int, to_channel: int):
             if pressure == 0:
                 pressure = math.nan
             sent_list = []
-            # we should ignore wind speeds when marking an invest
-            # all wind speed values shown are in knots rounded to the nearest 5 (except for ones after > operators)
-            if name == "INVEST":
+            '''
+            Wind speeds are ignored when marking an invest.
+            There is one exception, which is for subtropical cyclones, because not all agencies issue advisories/warnings on STCs (notably CPHC and JTWC).
+            We can make an exception for STCs because ATCF doesn't autoflag them (more on that below).
+            All wind speed values shown are in knots rounded to the nearest 5 (except for ones after > operators)
+            '''
+            if name == "INVEST" and (not (tc_class == "SD" or tc_class == "SS")):
                 tc_class = "INVEST"
-                name = cyc_id
-                emoji = "<:low:1109997033227558923>"
-            elif tc_class == "EX":
-                tc_class = "POST-TROPICAL CYCLONE"
+            if tc_class == "EX":
+                if not name == "INVEST":
+                    tc_class = "POST-TROPICAL CYCLONE"
                 emoji = "<:ex:1109994645431259187>"
-            elif (tc_class == "LO" or tc_class == "DB" or tc_class == "WV") and not name == "INVEST":
-                tc_class = "REMNANTS OF"
+            elif tc_class == "LO" or tc_class == "INVEST":
+                if not name == "INVEST":
+                    tc_class = "POST-TROPICAL CYCLONE"
+                emoji = "<:low:1109997033227558923>"
+            elif (tc_class == "DB" or tc_class == "WV"):
+                if not name == "INVEST":
+                    tc_class = "REMNANTS OF"
                 emoji = "<:remnants:1109994646932836386>"
-            elif wind > 24 and wind < 35:
-                if not tc_class == "SD":
+            elif wind < 35:
+                if not (tc_class == "SD" or name == "INVEST"):
+                    # ignored if invest in case of autoflagging
+                    # ATCF will autoflag a system to be a TD once it has attained 1-minute sustained winds of between 23 and 33 kt
                     tc_class = "TROPICAL DEPRESSION"
                     emoji = "<:td:1109994651169079297>"
+                elif name == "INVEST" and not tc_class == "SD":
+                    emoji = "<:low:1109997033227558923>"
                 else:
                     tc_class = "SUBTROPICAL DEPRESSION"
                     emoji = "<:sd:1109994648300163142>"
             elif wind > 34 and wind < 65:
-                if not tc_class == "SS":
+                if not (tc_class == "SS" or name == "INVEST"):
                     tc_class = "TROPICAL STORM"
                     emoji = "<:ts:1109994652368650310>"
+                elif name == "INVEST" and not tc_class == "SS":
+                    emoji = "<:low:1109997033227558923>"
                 else:
                     tc_class = "SUBTROPICAL STORM"
                     emoji = "<:ss:1109994649654935563>"
             else:
                 # determine the term to use based on the basin
+                # we assume at this point that the system is either a TC or extratropical
                 if basin == "ATL" or basin == "EPAC" or basin == "CPAC":
                     tc_class = "HURRICANE"
                 elif basin == "WPAC":
@@ -202,12 +217,16 @@ async def update_guild(guild: int, to_channel: int):
                     emoji = "<:cat5intense:1111376977664954470>"
                 else:
                     emoji = "<:cat5veryintense:1111378049448026126>"
-            if tc_class == "INVEST":
-                display_name = name
+            if name == "INVEST":
+                name = display_name = cyc_id
             else:
                 display_name = f"{cyc_id} ({name})"
             # update TC records
-            if (wind > int(current_TC_record[5])) or (wind == int(current_TC_record[5]) and pressure < int(current_TC_record[8])):
+            if current_TC_record is not None:
+                if (wind > int(current_TC_record[5])) or (wind == int(current_TC_record[5]) and pressure < int(current_TC_record[8])):
+                    global_vars.write("strongest_storm",[emoji,tc_class,cyc_id,name,str(timestamp),str(wind),str(mph),str(kmh),str(pressure)])
+            else:
+                logging.info("No TC record found.")
                 global_vars.write("strongest_storm",[emoji,tc_class,cyc_id,name,str(timestamp),str(wind),str(mph),str(kmh),str(pressure)])
 
             # this check is really long since it needs to accomodate for every possible situation
@@ -217,11 +236,12 @@ async def update_guild(guild: int, to_channel: int):
                 pressure = "N/A"
             if send_message:
                 await channel.send(f"# {emoji} {tc_class} {display_name}\nAs of <t:{timestamp}:f>, the center of {name} was located near {lat}, {long}. Maximum 1-minute sustained winds were {wind} kt ({mph} mph/{kmh} kph) and the minimum central pressure was {pressure} mb.")
-            for was_sent in sent_list:
-                if was_sent:
-                    break
-            else:
-                await channel.send(f"No TCs or areas of interest active at this time.")
+
+        for was_sent in sent_list:
+            if was_sent:
+                break
+        else:
+            await channel.send(f"No TCs or areas of interest active at this time.")
         if len(atcf.cyclones) == 0:
             await channel.send(f"No TCs or areas of interest active at this time.")
         # it is best practice to use official sources when possible
@@ -234,6 +254,12 @@ async def on_ready():
     logging.info(f"We have logged in as {bot.user}")
     global_vars.write("guild_count",len(bot.guilds))
     global cog
+    # stop the monitor if it is already running
+    # this is to prevent a situation where there are two instances of the task running in some edge cases
+    try:
+        cog.auto_update.stop()
+    except NameError:
+        pass
     cog = monitor(bot)
     cog.auto_update.start()
 
@@ -268,7 +294,7 @@ async def on_application_command_error(ctx: discord.ApplicationContext, error):
         except:
             logging.exception("Failed to send response.")
     else:
-        logging.exception(f"An exception occurred while executing command {ctx.command.name}.")
+        logging.exception(f"An exception occurred while executing command {ctx.command.name}.\n{error}")
         try:
             await ctx.respond(f"An exception occurred while executing this command.\n{error}",ephemeral=True)
         except:
@@ -428,6 +454,10 @@ async def invite(ctx):
 async def statistics(ctx):
     await ctx.defer()
     strongest_storm = global_vars.get("strongest_storm")
+    if strongest_storm is None:
+        # If the above method returned None then it means that it cannot load the JSON file.
+        await ctx.respond("Could not get global variables.",ephemeral=True)
+        return
     yikes_count = global_vars.get("yikes_count")
     guild_count = global_vars.get("guild_count")
     await ctx.respond(
