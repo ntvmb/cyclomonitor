@@ -21,7 +21,7 @@ try:
 except:
     pass
 
-token = open('TOKEN','r').read().split()[0]
+token = open('TOKEN','r').read().split()[0] # split in case of any newlines or spaces
 bot=discord.Bot(intents=discord.Intents.default())
 # it is ideal to put out the information as soon as possible, but there may be overrides
 times=[
@@ -77,7 +77,7 @@ class monitor(commands.Cog):
             return
         if self.should_suppress(prev_timestamps):
             # try alternate source
-            logging.info("Suppression from main source called. Trying fallback source...")
+            logging.warn("Suppression from main source called. Trying fallback source...")
             try:
                 atcf.get_data_alt()
             except atcf.ATCFError as e:
@@ -192,7 +192,10 @@ async def update_guild(guild: int, to_channel: int):
                 # determine the term to use based on the basin
                 # we assume at this point that the system is either a TC or extratropical
                 if basin == "ATL" or basin == "EPAC" or basin == "CPAC":
-                    tc_class = "HURRICANE"
+                    if wind < 100:
+                        tc_class = "HURRICANE"
+                    else:
+                        tc_class = "MAJOR HURRICANE"
                 elif basin == "WPAC":
                     if wind < 130:
                         tc_class = "TYPHOON"
@@ -224,9 +227,10 @@ async def update_guild(guild: int, to_channel: int):
             # update TC records
             if current_TC_record is not None:
                 if (wind > int(current_TC_record[5])) or (wind == int(current_TC_record[5]) and pressure < int(current_TC_record[8])):
+                    logging.info("Looks like we have a new record!")
                     global_vars.write("strongest_storm",[emoji,tc_class,cyc_id,name,str(timestamp),str(wind),str(mph),str(kmh),str(pressure)])
             else:
-                logging.info("No TC record found.")
+                logging.info("No TC record found. Creating record...")
                 global_vars.write("strongest_storm",[emoji,tc_class,cyc_id,name,str(timestamp),str(wind),str(mph),str(kmh),str(pressure)])
 
             # this check is really long since it needs to accomodate for every possible situation
@@ -517,5 +521,10 @@ async def get_data_alt(ctx):
 async def atcf_reset(ctx):
     atcf.reset()
     await ctx.respond("ATCF data reset.",ephemeral=True)
+
+@bot.slash_command(name="github",description="Link to CycloMonitor's GitHub repository")
+async def github(ctx):
+    # PLEASE CHANGE THE LINK IF YOU ARE FORKING THIS PROJECT.
+    await ctx.respond("CycloMonitor is free software licensed under the terms of the GNU General Public License Version 3. The source code is available at https://github.com/ntvmb/cyclomonitor, and the full license can be found in the repository's `LICENSE` file.\nFYI, you can use the GitHub repository to report issues.",ephemeral=True)
 
 bot.run(token)
