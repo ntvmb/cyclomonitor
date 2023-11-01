@@ -1,3 +1,13 @@
+copyright_notice = """
+CycloMonitor - Discord bot that provides the latest information on TCs based on data from the US NRL's ATCF.
+Copyright (c) 2023 Virtual Nate
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+For those hosting a copy of this bot, you should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+"""
 import discord
 from discord import option, default_permissions, SlashCommandOptionType, guild_only, Option
 from discord.ext import tasks, commands
@@ -529,15 +539,6 @@ async def github(ctx):
 
 @bot.slash_command(name="copyright",description="Copyright notice")
 async def copyright(ctx):
-    await ctx.respond("""
-CycloMonitor - Discord bot that provides the latest information on TCs based on data from the US NRL's ATCF.
-Copyright (c) 2023 Nathaniel Greenwell
-
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-For those hosting a copy of this bot, you should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
-""")
+    await ctx.respond(copyright_notice,ephemeral=True)
 
 bot.run(token)
