@@ -260,7 +260,7 @@ async def update_guild(guild: int, to_channel: int):
             await channel.send(f"No TCs or areas of interest active at this time.")
         # it is best practice to use official sources when possible
         await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
-        await channel.send("For north Atlantic and eastern Pacific storms, see https://www.nhc.noaa.gov for more information.\nFor others, check your RSMC website or see https://www.metoc.navy.mil/jtwc/jtwc.html for more information.")
+        await channel.send("For more information, check your local RSMC website (see `/rsmc_list`) or go to <https://www.metoc.navy.mil/jtwc/jtwc.html>.")
 
 @bot.event
 async def on_ready():
@@ -540,5 +540,20 @@ async def github(ctx):
 @bot.slash_command(name="copyright",description="Copyright notice")
 async def copyright(ctx):
     await ctx.respond(copyright_notice,ephemeral=True)
+
+@bot.slash_command(name="rsmc_list",description="A list of links Regional Specialized Meteorological Center (RSMC) websites.")
+async def rsmc_list(ctx):
+    await ctx.defer(ephemeral=True)
+    await ctx.respond("# RSMC list\nAtlantic (NATL) and Eastern Pacific (EPAC) - National Hurricane Center (NHC, RSMC Miami): <https://www.nhc.noaa.gov/> (Active May 15th through November 30th)\n\
+Central Pacific (CPAC) - Central Pacific Hurricane Center (CPHC, RSMC Honolulu): <https://www.nhc.noaa.gov/?cpac> (Active June 1st through November 30th)\n\
+Western Pacific (WPAC) - Japan Meteorological Agency (JMA, RSMC Tokyo): <https://www.jma.go.jp/bosai/map.html#contents=typhoon&lang=en>\n\
+North Indian Ocean (NIO) - India Meteorological Department (IMD, RSMC New Delhi): <https://mausam.imd.gov.in/responsive/cycloneinformation.php>\n\
+Southwest Indian Ocean (SWIO) - Meteo France La Réunion (MFR, RSMC La Réunion): <https://meteofrance.re/fr/cyclone>\n\
+Australia Region (AUS) - Bureau of Meteorology (BOM, RSMC Melbourne): <http://www.bom.gov.au/cyclone> (Active November 1st through April 30th)\n\
+South Pacific (SPAC) - Fiji Meteorological Service (FMS, RSMC Nadi): <https://www.met.gov.fj> (Active November 1st through April 30th)\n\
+## Some other tropical cyclone warning centers (TCWC)\n\
+Joint Typhoon Warning Center (JTWC): <https://www.metoc.navy.mil/jtwc/jtwc.html>\n\
+Philippine Atmospheric, Geophysical and Astronomical Services Administration (PAGASA): <https://bagong.pagasa.dost.gov.ph/>"
+    )
 
 bot.run(token)
