@@ -21,14 +21,25 @@ import calendar
 import warnings
 import logging
 from uptime import *
+from sys import exit
+
+logname='bot.log'
+logging.basicConfig(filename=logname,
+                    filemode='a',
+                    format='%(asctime)s.%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.INFO)
 try:
     from tendo import singleton
 except ModuleNotFoundError:
-    pass
+    logging.warning("Module tendo not found. Single-instance checking will not be available.")
 
 try:
     me = singleton.SingleInstance() # Prevent more than one instance from running at once
-except:
+except singleton.SingleInstanceException:
+    logging.critical("Another instance of CycloMonitor is already running!")
+    exit(1)
+except NameError:
     pass
 
 token = open('TOKEN','r').read().split()[0] # split in case of any newlines or spaces
@@ -40,12 +51,6 @@ times=[
     datetime.time(14,0,tzinfo=datetime.UTC),
     datetime.time(20,0,tzinfo=datetime.UTC)
 ]
-logname='bot.log'
-logging.basicConfig(filename=logname,
-                    filemode='a',
-                    format='%(asctime)s.%(msecs)d %(name)s %(levelname)s %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO)
 
 class monitor(commands.Cog):
     def __init__(self, bot):
