@@ -106,7 +106,7 @@ class monitor(commands.Cog):
                         channel = bot.get_channel(channel_id)
                         await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- ATCF is down\n- All active systems dissipated recently\n- A manual update was called recently")
                         await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
-                    return
+                return
         for guild in bot.guilds:
             channel_id = server_vars.get("tracking_channel",guild.id)
             if channel_id is not None:
@@ -115,7 +115,7 @@ class monitor(commands.Cog):
     @auto_update.error
     async def on_update_error(self, error):
         logging.exception("CycloMonitor encountered an error while updating.")
-        bot_owner = self.bot.get_user(144080789624061962)
+        bot_owner = await self.bot.get_or_fetch_user(self.bot.owner_id)
         if bot_owner is not None:
             try:
                 with open('bot.log','rb') as log:
