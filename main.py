@@ -114,19 +114,24 @@ class monitor(commands.Cog):
     
     @auto_update.error
     async def on_update_error(self, error):
-        logging.exception("CycloMonitor encountered an error while updating.")
-        bot_owner = await self.bot.get_or_fetch_user(self.bot.owner_id)
+        if not isinstance(error, errors.LogRequested):
+            logging.exception("CycloMonitor encountered an error while updating.")
+        app = await self.bot.application_info()
+        bot_owner = app.owner
         if bot_owner is not None:
             try:
                 with open('bot.log','rb') as log:
                     await bot_owner.send(f"ERROR ERROR PLEASE HELP\nAutomatic update failed due to an exception.\nAttaching log...",file=discord.File(log))
             except:
                 logging.exception("Failed to send log to the bot owner.")
-        for guild in bot.guilds:
-            channel_id = server_vars.get("tracking_channel",guild.id)
-            if channel_id is not None:
-                channel = bot.get_channel(channel_id)
-                await channel.send(f"CycloMonitor encountered an error while updating. This incident has been reported to the bot owner.")
+        else:
+            logging.warning("Could not fetch owner.")
+        if not isinstance(error, errors.LogRequested):
+            for guild in bot.guilds:
+                channel_id = server_vars.get("tracking_channel",guild.id)
+                if channel_id is not None:
+                    channel = bot.get_channel(channel_id)
+                    await channel.send(f"CycloMonitor encountered an error while updating. This incident has been reported to the bot owner.")
 
 # this function needs to be a coroutine since other coroutines are called
 async def update_guild(guild: int, to_channel: int):
@@ -560,5 +565,12 @@ South Pacific (SPAC) - Fiji Meteorological Service (FMS, RSMC Nadi): <https://ww
 Joint Typhoon Warning Center (JTWC): <https://www.metoc.navy.mil/jtwc/jtwc.html>\n\
 Philippine Atmospheric, Geophysical and Astronomical Services Administration (PAGASA): <https://bagong.pagasa.dost.gov.ph/>"
     )
+
+@bot.slash_command(name="get_log", description="Send the log to the owner")
+@commands.is_owner()
+async def get_log(ctx):
+    await ctx.defer(ephemeral=True)
+    await cog.on_update_error(errors.LogRequested("The bot's log was requested."))
+    await ctx.respond("Attempted to send the log!")
 
 bot.run(token)
