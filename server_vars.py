@@ -1,3 +1,5 @@
+# CycloMonitor Copyright (C) 2023 Nathaniel Greenwell
+# This program comes with ABSOLUTELY NO WARRANTY; for details see main.py
 import json
 import logging
 json_file = 'serverVars.json'
@@ -10,7 +12,7 @@ def write(var_name: str,value,guild: int):
     except:
         data = []
     for i in data:
-        if not i.get(str(guild)) == None:
+        if i.get(str(guild)) is not None:
             server_data = i.get(str(guild))
             server_data.update({var_name: value})
             break
@@ -39,7 +41,7 @@ def get(var_name: str,guild: int):
         logging.exception("Cannot open JSON file")
         return None
     for i in data:
-        if not i.get(str(guild)) == None:
+        if i.get(str(guild)) is not None:
             server_data = i.get(str(guild))
             value = server_data.get(var_name)
             return value
@@ -53,7 +55,7 @@ def remove_guild(guild: int):
         logging.exception("Cannot open JSON file")
         return None
     for i in data:
-        if not i.get(str(guild)) == None:
+        if i.get(str(guild)) is not None:
             data.remove(i)
             with open(json_file,'w') as f:
                 f.write(json.dumps(data, indent=4))
