@@ -140,20 +140,9 @@ async def update_guild(guild: int, to_channel: int):
     enabled_basins = server_vars.get("basins",guild)
     current_TC_record = global_vars.get("strongest_storm") # record-keeping
     if enabled_basins is not None:
-        for i in range(len(atcf.cyclones)):
-            cyc_id = atcf.cyclones[i]
-            basin = atcf.basins[i]
-            wind = atcf.winds[i] # winds are tracked internally in knots (kt)
+        for cyc_id, basin, wind, name, timestamp, lat, long, pressure, tc_class, lat_real, long_real in zip(atcf.cyclones, atcf.basins, atcf.winds, atcf.names, atcf.timestamps, atcf.lats, atcf.longs, atcf.pressures, atcf.tc_classes, atcf.lats_real, atcf.longs_real):
             mph = round(wind * 1.15077945 / 5) * 5 # per standard, we round to the nearest 5
             kmh = round(wind * 1.852 / 5) * 5
-            name = atcf.names[i]
-            timestamp = atcf.timestamps[i]
-            lat = atcf.lats[i]
-            long = atcf.longs[i]
-            pressure = atcf.pressures[i]
-            tc_class = atcf.tc_classes[i]
-            lat_real = atcf.lats_real[i]
-            long_real = atcf.longs_real[i]
             # accomodate for basin crossovers
             if lat_real > 0 and long_real > 30 and long_real < 97:
                 basin = "IO"
