@@ -20,6 +20,8 @@ import datetime
 import calendar
 import warnings
 import logging
+import time
+import asyncio
 from uptime import *
 from sys import exit
 
@@ -55,6 +57,7 @@ times=[
 class monitor(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.last_update = global_vars.get("last_update")
 
     def cog_unload(self):
         logging.info("Stopping monitor...")
@@ -66,10 +69,10 @@ class monitor(commands.Cog):
             try:
                 # will this system request for a suppression?
                 suppressed.append(prev_timestamps[index] >= timestamp)
-                logging.info(f"Comparison of timestamps for {cyclone} returned {suppressed[index]}.")
             except:
                 suppressed.append(False)
-        if len(atcf.cyclones) == 0:
+            logging.info(f"Comparison of timestamps for {cyclone} returned {suppressed[index]}.")
+        if not atcf.cyclones:
             suppressed.append(False)
         # only suppress an automatic update if all active systems requested a suppression
         for do_suppress in suppressed:
@@ -107,6 +110,8 @@ class monitor(commands.Cog):
                         await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- ATCF is down\n- All active systems dissipated recently\n- A manual update was called recently")
                         await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
                 return
+        self.last_update = math.floor(time.time())
+        global_vars.write("last_update", self.last_update)
         for guild in bot.guilds:
             channel_id = server_vars.get("tracking_channel",guild.id)
             if channel_id is not None:
@@ -275,6 +280,9 @@ async def on_ready():
         pass
     cog = monitor(bot)
     cog.auto_update.start()
+    # force an automatic update if last_update is not set or more than 6 hours have passed since the last update
+    if (cog.last_update is None) or (math.floor(time.time()) - cog.last_update > 21600):
+        await cog.auto_update()
 
 @bot.event
 async def on_guild_join(guild: discord.Guild):
@@ -344,6 +352,8 @@ async def update(ctx):
     await ctx.defer(ephemeral=True)
     channel_id = server_vars.get("tracking_channel",ctx.guild_id)
     atcf.get_data()
+    cog.last_update = math.floor(time.time())
+    global_vars.write("last_update", cog.last_update)
     if channel_id is not None:
         await update_guild(ctx.guild_id,channel_id)
         await ctx.respond("Updated!",ephemeral=True)
@@ -358,6 +368,8 @@ async def update_alt(ctx):
     await ctx.defer(ephemeral=True)
     channel_id = server_vars.get("tracking_channel",ctx.guild_id)
     atcf.get_data_alt()
+    cog.last_update = math.floor(time.time())
+    global_vars.write("last_update", cog.last_update)
     if channel_id is not None:
         await update_guild(ctx.guild_id,channel_id)
         await ctx.respond("Updated!",ephemeral=True)
@@ -387,6 +399,8 @@ async def set_basins(
 async def update_all(ctx):
     await ctx.defer(ephemeral=True)
     atcf.get_data()
+    cog.last_update = math.floor(time.time())
+    global_vars.write("last_update", cog.last_update)
     for guild in bot.guilds:
         channel_id = server_vars.get("tracking_channel",guild.id)
         # attempt to update only if the tracking channel is set
@@ -399,6 +413,8 @@ async def update_all(ctx):
 async def update_all_alt(ctx):
     await ctx.defer(ephemeral=True)
     atcf.get_data_alt()
+    cog.last_update = math.floor(time.time())
+    global_vars.write("last_update", cog.last_update)
     for guild in bot.guilds:
         channel_id = server_vars.get("tracking_channel",guild.id)
         # attempt to update only if the tracking channel is set
@@ -507,10 +523,12 @@ async def get_data(ctx):
     await ctx.defer(ephemeral=True)
     try:
         atcf.get_data()
+        cog.last_update = math.floor(time.time())
+        global_vars.write("last_update", cog.last_update)
         with open('atcf_sector_file','r') as f:
             content = f.read()
             await ctx.respond(f"ATCF data downloaded.\n{content}",ephemeral=True)
-    except Exception as e:
+    except atcf.ATCFError as e:
         await ctx.respond(f"Could not get data!\n{e}",ephemeral=True)
 
 @bot.slash_command(name="get_data_alt",description="Get the latest ATCF data without triggering an update (Fallback source)")
@@ -519,6 +537,8 @@ async def get_data_alt(ctx):
     await ctx.defer(ephemeral=True)
     try:
         atcf.get_data_alt()
+        cog.last_update = math.floor(time.time())
+        global_vars.write("last_update", cog.last_update)
         with open('atcf_sector_file','r') as f:
             content = f.read()
             await ctx.respond(f"ATCF data downloaded.\n{content}",ephemeral=True)
