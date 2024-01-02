@@ -66,7 +66,7 @@ class monitor(commands.Cog):
             try:
                 # will this system request for a suppression?
                 suppressed.append(prev_timestamps[index] >= timestamp)
-                logging.info(f"Comparison of timestamps for {cyclone} returned {suppressed[i]}.")
+                logging.info(f"Comparison of timestamps for {cyclone} returned {suppressed[index]}.")
             except:
                 suppressed.append(False)
         if len(atcf.cyclones) == 0:
