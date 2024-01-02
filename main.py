@@ -62,11 +62,11 @@ class monitor(commands.Cog):
     
     def should_suppress(self,prev_timestamps: list):
         suppressed = []
-        for i in range(len(atcf.cyclones)):
+        for index, (cyclone, timestamp) in enumerate(zip(atcf.cyclones, atcf.timestamps)):
             try:
                 # will this system request for a suppression?
-                suppressed.append(prev_timestamps[i] >= atcf.timestamps[i])
-                logging.info(f"Comparison of timestamps for {atcf.cyclones[i]} returned {suppressed[i]}.")
+                suppressed.append(prev_timestamps[index] >= timestamp)
+                logging.info(f"Comparison of timestamps for {cyclone} returned {suppressed[i]}.")
             except:
                 suppressed.append(False)
         if len(atcf.cyclones) == 0:
