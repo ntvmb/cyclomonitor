@@ -25,7 +25,7 @@ import asyncio
 from uptime import *
 from sys import exit
 
-logname='bot.log'
+logname = 'bot.log'
 logging.basicConfig(filename=logname,
                     filemode='a',
                     format='%(asctime)s.%(msecs)d %(name)s %(levelname)s %(message)s',
@@ -44,15 +44,16 @@ except singleton.SingleInstanceException:
 except NameError:
     pass
 
-token = open('TOKEN','r').read().split()[0] # split in case of any newlines or spaces
-bot=discord.Bot(intents=discord.Intents.default())
+token = open('TOKEN', 'r').read().split()[0] # split in case of any newlines or spaces
+bot = discord.Bot(intents=discord.Intents.default())
 # it is ideal to put out the information as soon as possible, but there may be overrides
-times=[
-    datetime.time(2,0,tzinfo=datetime.UTC),
-    datetime.time(8,0,tzinfo=datetime.UTC),
-    datetime.time(14,0,tzinfo=datetime.UTC),
-    datetime.time(20,0,tzinfo=datetime.UTC)
+times = [
+    datetime.time(2, 0, tzinfo=datetime.UTC),
+    datetime.time(8, 0, tzinfo=datetime.UTC),
+    datetime.time(14, 0, tzinfo=datetime.UTC),
+    datetime.time(20, 0, tzinfo=datetime.UTC)
 ]
+
 
 class monitor(commands.Cog):
     def __init__(self, bot):
@@ -62,14 +63,14 @@ class monitor(commands.Cog):
     def cog_unload(self):
         logging.info("Stopping monitor...")
         self.auto_update.cancel()
-    
-    def should_suppress(self,prev_timestamps: list):
+
+    def should_suppress(self, prev_timestamps: list):
         suppressed = []
         for index, (cyclone, timestamp) in enumerate(zip(atcf.cyclones, atcf.timestamps)):
             try:
                 # will this system request for a suppression?
                 suppressed.append(prev_timestamps[index] >= timestamp)
-            except:
+            except IndexError:
                 suppressed.append(False)
             logging.info(f"Comparison of timestamps for {cyclone} returned {suppressed[index]}.")
         if not atcf.cyclones:
@@ -86,7 +87,7 @@ class monitor(commands.Cog):
         logging.info("Beginning automatic update...")
         try:
             prev_timestamps = atcf.timestamps.copy()
-        except:
+        except Exception:
             prev_timestamps = []
         try:
             atcf.get_data()
@@ -104,7 +105,7 @@ class monitor(commands.Cog):
             if self.should_suppress(prev_timestamps):
                 logging.warn("The most recent automatic update was suppressed. Investigate the cause.")
                 for guild in bot.guilds:
-                    channel_id = server_vars.get("tracking_channel",guild.id)
+                    channel_id = server_vars.get("tracking_channel", guild.id)
                     if channel_id is not None:
                         channel = bot.get_channel(channel_id)
                         await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- ATCF is down\n- All active systems dissipated recently\n- A manual update was called recently")
@@ -113,10 +114,10 @@ class monitor(commands.Cog):
         self.last_update = math.floor(time.time())
         global_vars.write("last_update", self.last_update)
         for guild in bot.guilds:
-            channel_id = server_vars.get("tracking_channel",guild.id)
+            channel_id = server_vars.get("tracking_channel", guild.id)
             if channel_id is not None:
-                await update_guild(guild.id,channel_id)
-    
+                await update_guild(guild.id, channel_id)
+
     @auto_update.error
     async def on_update_error(self, error):
         if not isinstance(error, errors.LogRequested):
@@ -125,24 +126,25 @@ class monitor(commands.Cog):
         bot_owner = app.owner
         if bot_owner is not None:
             try:
-                with open('bot.log','rb') as log:
-                    await bot_owner.send(f"ERROR ERROR PLEASE HELP\nAutomatic update failed due to an exception.\nAttaching log...",file=discord.File(log))
-            except:
+                with open('bot.log', 'rb') as log:
+                    await bot_owner.send(f"ERROR ERROR PLEASE HELP\nAutomatic update failed due to an exception.\nAttaching log...", file=discord.File(log))
+            except discord.HTTPException:
                 logging.exception("Failed to send log to the bot owner.")
         else:
             logging.warning("Could not fetch owner.")
         if not isinstance(error, errors.LogRequested):
             for guild in bot.guilds:
-                channel_id = server_vars.get("tracking_channel",guild.id)
+                channel_id = server_vars.get("tracking_channel", guild.id)
                 if channel_id is not None:
                     channel = bot.get_channel(channel_id)
                     await channel.send(f"CycloMonitor encountered an error while updating. This incident has been reported to the bot owner.")
+
 
 # this function needs to be a coroutine since other coroutines are called
 async def update_guild(guild: int, to_channel: int):
     logging.info(f"Performing update routines for guild {guild}")
     channel = bot.get_channel(to_channel)
-    enabled_basins = server_vars.get("basins",guild)
+    enabled_basins = server_vars.get("basins", guild)
     current_TC_record = global_vars.get("strongest_storm") # record-keeping
     if enabled_basins is not None:
         for cyc_id, basin, wind, name, timestamp, lat, long, pressure, tc_class, lat_real, long_real in zip(atcf.cyclones, atcf.basins, atcf.winds, atcf.names, atcf.timestamps, atcf.lats, atcf.longs, atcf.pressures, atcf.tc_classes, atcf.lats_real, atcf.longs_real):
@@ -242,10 +244,10 @@ async def update_guild(guild: int, to_channel: int):
             if current_TC_record is not None:
                 if (wind > int(current_TC_record[5])) or (wind == int(current_TC_record[5]) and pressure < int(current_TC_record[8])):
                     logging.info("Looks like we have a new record!")
-                    global_vars.write("strongest_storm",[emoji,tc_class,cyc_id,name,str(timestamp),str(wind),str(mph),str(kmh),str(pressure)])
+                    global_vars.write("strongest_storm", [emoji, tc_class, cyc_id, name, str(timestamp), str(wind), str(mph), str(kmh), str(pressure)])
             else:
                 logging.info("No TC record found. Creating record...")
-                global_vars.write("strongest_storm",[emoji,tc_class,cyc_id,name,str(timestamp),str(wind),str(mph),str(kmh),str(pressure)])
+                global_vars.write("strongest_storm", [emoji, tc_class, cyc_id, name, str(timestamp), str(wind), str(mph), str(kmh), str(pressure)])
 
             # this check is really long since it needs to accomodate for every possible situation
             send_message = (basin == "ATL" and enabled_basins[0] == "1") or (basin == "EPAC" and enabled_basins[1] == "1") or (basin == "CPAC" and enabled_basins[2] == "1") or (basin == "WPAC" and enabled_basins[3] == "1") or (basin == "IO" and enabled_basins[4] == "1") or (basin == "SHEM" and enabled_basins[5] == "1")
@@ -253,7 +255,11 @@ async def update_guild(guild: int, to_channel: int):
             if math.isnan(pressure):
                 pressure = "N/A"
             if send_message:
-                await channel.send(f"# {emoji} {tc_class} {display_name}\nAs of <t:{timestamp}:f>, the center of {name} was located near {lat}, {long}. Maximum 1-minute sustained winds were {wind} kt ({mph} mph/{kmh} kph) and the minimum central pressure was {pressure} mb.")
+                try:
+                    await channel.send(f"# {emoji} {tc_class} {display_name}\nAs of <t:{timestamp}:f>, the center of {name} was located near {lat}, {long}. Maximum 1-minute sustained winds were {wind} kt ({mph} mph/{kmh} kph) and the minimum central pressure was {pressure} mb.")
+                except discord.HTTPError:
+                    logging.warning(f"Guild {guild} is unavailable. Skipping this guild.")
+                    return
 
         for was_sent in sent_list:
             if was_sent:
@@ -266,11 +272,12 @@ async def update_guild(guild: int, to_channel: int):
         await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
         await channel.send("For more information, check your local RSMC website (see `/rsmc_list`) or go to <https://www.metoc.navy.mil/jtwc/jtwc.html>.")
 
+
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,name="cyclones around the world!"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="cyclones around the world!"))
     logging.info(f"We have logged in as {bot.user}")
-    global_vars.write("guild_count",len(bot.guilds))
+    global_vars.write("guild_count", len(bot.guilds))
     global cog
     # stop the monitor if it is already running
     # this is to prevent a situation where there are two instances of the task running in some edge cases
@@ -284,49 +291,54 @@ async def on_ready():
     if (cog.last_update is None) or (math.floor(time.time()) - cog.last_update > 21600):
         await cog.auto_update()
 
+
 @bot.event
 async def on_guild_join(guild: discord.Guild):
     logging.info(f"Bot added to guild: {guild.name}")
     count = len(bot.guilds)
-    global_vars.write("guild_count",count)
+    global_vars.write("guild_count", count)
     for channel in guild.text_channels:
         if channel.permissions_for(guild.me).send_messages:
             await channel.send("Thanks for adding me!\nTo configure this bot for your server, first set the channel for cyclone updates to be posted in with `/set_tracking_channel`. Then set the basins you'd like to see with `/set_basins`.")
             break
+
 
 @bot.event
 async def on_guild_remove(guild: discord.Guild):
     logging.info(f"Bot removed from guild: {guild.name}")
     count = len(bot.guilds)
     server_vars.remove_guild(guild.id)
-    global_vars.write("guild_count",count)
+    global_vars.write("guild_count", count)
+
 
 @bot.event
 async def on_application_command_error(ctx: discord.ApplicationContext, error):
     if isinstance(error, commands.errors.MissingPermissions) or isinstance(error, commands.errors.NotOwner):
         try:
-            await ctx.respond("You do not have permission to use this command. This incident will be reported.",ephemeral=True)
-        except:
+            await ctx.respond("You do not have permission to use this command. This incident will be reported.", ephemeral=True)
+        except discord.HTTPError:
             logging.exception("Failed to send response.")
         logging.warn(f"User {ctx.author} attempted to execute {ctx.command.name}, but does not have permission to do so.")
     elif isinstance(error, commands.errors.NoPrivateMessage):
         try:
-            await ctx.respond("This command cannot be used in a DM context.",ephemeral=True)
-        except:
+            await ctx.respond("This command cannot be used in a DM context.", ephemeral=True)
+        except discord.HTTPError:
             logging.exception("Failed to send response.")
     else:
         logging.exception(f"An exception occurred while executing command {ctx.command.name}.\n{error}")
         try:
-            await ctx.respond(f"An exception occurred while executing this command.\n{error}",ephemeral=True)
-        except:
+            await ctx.respond(f"An exception occurred while executing this command.\n{error}", ephemeral=True)
+        except discord.HTTPError:
             logging.exception("Failed to send response.")
 
-@bot.slash_command(name="ping",description="Test the response time")
+
+@bot.slash_command(name="ping", description="Test the response time")
 async def ping(ctx):
     await ctx.defer(ephemeral=True)
-    await ctx.respond(f"Pong! `"+str(math.floor(bot.latency*1000))+" ms`",ephemeral=True)
+    await ctx.respond(f"Pong! `"+str(math.floor(bot.latency*1000))+" ms`", ephemeral=True)
 
-@bot.slash_command(name="set_tracking_channel",description="Set the tracking channel")
+
+@bot.slash_command(name="set_tracking_channel", description="Set the tracking channel")
 @guild_only()
 @commands.has_guild_permissions(manage_channels=True)
 @option(
@@ -334,39 +346,41 @@ async def ping(ctx):
     discord.TextChannel,
     description="The channel to use"
 )
-async def set_tracking_channel(ctx,channel):
+async def set_tracking_channel(ctx, channel):
     await ctx.defer(ephemeral=True)
     if not isinstance(channel, discord.TextChannel):
-        await ctx.respond(f"Error: Must be a text channel!",ephemeral=True)
+        await ctx.respond(f"Error: Must be a text channel!", ephemeral=True)
     else:
         if channel.permissions_for(ctx.me).send_messages:
-            server_vars.write("tracking_channel",channel.id,ctx.guild_id)
-            await ctx.respond(f"Successfully set the tracking channel to {channel}!",ephemeral=True)
+            server_vars.write("tracking_channel", channel.id, ctx.guild_id)
+            await ctx.respond(f"Successfully set the tracking channel to {channel}!", ephemeral=True)
         else:
-            await ctx.respond(f"I cannot send messages to that channel! Give me permission to send messages there, or try a different channel.",ephemeral=True)
+            await ctx.respond(f"I cannot send messages to that channel! Give me permission to send messages there, or try a different channel.", ephemeral=True)
 
-@bot.slash_command(name="update",description="Cause CycloMonitor to update immediately")
+
+@bot.slash_command(name="update", description="Cause CycloMonitor to update immediately")
 @guild_only()
 @commands.has_guild_permissions(manage_messages=True)
 async def update(ctx):
     await ctx.defer(ephemeral=True)
-    channel_id = server_vars.get("tracking_channel",ctx.guild_id)
+    channel_id = server_vars.get("tracking_channel", ctx.guild_id)
     atcf.get_data()
     cog.last_update = math.floor(time.time())
     global_vars.write("last_update", cog.last_update)
     if channel_id is not None:
-        await update_guild(ctx.guild_id,channel_id)
-        await ctx.respond("Updated!",ephemeral=True)
+        await update_guild(ctx.guild_id, channel_id)
+        await ctx.respond("Updated!", ephemeral=True)
     else:
-        await ctx.respond("Tracking channel is not set!",ephemeral=True)
+        await ctx.respond("Tracking channel is not set!", ephemeral=True)
     atcf.reset()
-    
-@bot.slash_command(name="update_alt",description="Cause CycloMonitor to update immediately (Fallback source)")
+
+
+@bot.slash_command(name="update_alt", description="Cause CycloMonitor to update immediately (Fallback source)")
 @guild_only()
 @commands.has_guild_permissions(manage_messages=True)
 async def update_alt(ctx):
     await ctx.defer(ephemeral=True)
-    channel_id = server_vars.get("tracking_channel",ctx.guild_id)
+    channel_id = server_vars.get("tracking_channel", ctx.guild_id)
     atcf.get_data_alt()
     cog.last_update = math.floor(time.time())
     global_vars.write("last_update", cog.last_update)
@@ -376,7 +390,8 @@ async def update_alt(ctx):
     else:
         await ctx.respond("Tracking channel is not set!",ephemeral=True)
     atcf.reset()
-        
+
+
 @bot.slash_command(name="set_basins",description="Set basins to track")
 @guild_only()
 @commands.has_guild_permissions(manage_guild=True)
@@ -394,7 +409,8 @@ async def set_basins(
     server_vars.write("basins",enabled_basins,ctx.guild_id)
     await ctx.respond("Basin configuration saved.",ephemeral=True)
 
-@bot.slash_command(name="update_all",description="Force CycloMonitor to update all guilds immediately")
+
+@bot.slash_command(name="update_all", description="Force CycloMonitor to update all guilds immediately")
 @commands.is_owner()
 async def update_all(ctx):
     await ctx.defer(ephemeral=True)
@@ -408,7 +424,8 @@ async def update_all(ctx):
             await update_guild(guild.id,channel_id)
     await ctx.respond("Updated!",ephemeral=True)
 
-@bot.slash_command(name="update_all_alt",description="Force CycloMonitor to update all guilds immediately (Fallback source)")
+
+@bot.slash_command(name="update_all_alt", description="Force CycloMonitor to update all guilds immediately (Fallback source)")
 @commands.is_owner()
 async def update_all_alt(ctx):
     await ctx.defer(ephemeral=True)
@@ -422,7 +439,8 @@ async def update_all_alt(ctx):
             await update_guild(guild.id,channel_id)
     await ctx.respond("Updated!",ephemeral=True)
 
-@bot.slash_command(name="announce_all",description="Make an announcement to all servers")
+
+@bot.slash_command(name="announce_all", description="Make an announcement to all servers")
 @commands.is_owner()
 async def announce_all(
     ctx: discord.ApplicationContext,
@@ -436,7 +454,8 @@ async def announce_all(
             await channel.send(announcement)
     await ctx.respond(f"Announced to all servers:\n{announcement}",ephemeral=True)
 
-@bot.slash_command(name="announce_basin",description="Make an announcement regarding a specific basin")
+
+@bot.slash_command(name="announce_basin", description="Make an announcement regarding a specific basin")
 @commands.is_owner()
 async def announce_basin(
     ctx: discord.ApplicationContext,
@@ -453,8 +472,9 @@ async def announce_basin(
             if send_message:
                 await channel.send(f"Announcement for {basin}:\n{announcement}")
     await ctx.respond(f"Announced for {basin}:\n{announcement}",ephemeral=True)
-    
-@bot.slash_command(name="announce_file",description="Announce to all servers from a text file")
+
+
+@bot.slash_command(name="announce_file", description="Announce to all servers from a text file")
 @commands.is_owner()
 async def announce_file(
     ctx: discord.ApplicationContext,
@@ -475,11 +495,13 @@ async def announce_file(
     else:
         await ctx.respond("Error: Not a text file!",ephemeral=True)
 
-@bot.slash_command(name="invite",description="Add this bot to your server!")
+
+@bot.slash_command(name="invite", description="Add this bot to your server!")
 async def invite(ctx):
     await ctx.respond("Here's my invite link!\n<https://discord.com/api/oauth2/authorize?client_id=1107462705004167230&permissions=67496000&scope=bot>",ephemeral=True)
 
-@bot.slash_command(name="statistics",description="Show this bot's records")
+
+@bot.slash_command(name="statistics", description="Show this bot's records")
 async def statistics(ctx):
     await ctx.defer()
     strongest_storm = global_vars.get("strongest_storm")
@@ -500,7 +522,8 @@ Current yikes counter: {yikes_count}\n\
 Bot uptime: {process_uptime_human_readable()}"
     )
 
-@bot.slash_command(name="yikes",description="Yikes!")
+
+@bot.slash_command(name="yikes", description="Yikes!")
 async def yikes(ctx):
     await ctx.defer(ephemeral=True)
     count = global_vars.get("yikes_count")
@@ -517,7 +540,8 @@ async def yikes(ctx):
     logging.info(f"The yikes count is now {count}!")
     await ctx.respond(f"# Yikes!\nThe yikes count is now {count}.")
 
-@bot.slash_command(name="get_data",description="Get the latest ATCF data without triggering an update")
+
+@bot.slash_command(name="get_data", description="Get the latest ATCF data without triggering an update")
 @commands.is_owner()
 async def get_data(ctx):
     await ctx.defer(ephemeral=True)
@@ -531,7 +555,8 @@ async def get_data(ctx):
     except atcf.ATCFError as e:
         await ctx.respond(f"Could not get data!\n{e}",ephemeral=True)
 
-@bot.slash_command(name="get_data_alt",description="Get the latest ATCF data without triggering an update (Fallback source)")
+
+@bot.slash_command(name="get_data_alt", description="Get the latest ATCF data without triggering an update (Fallback source)")
 @commands.is_owner()
 async def get_data_alt(ctx):
     await ctx.defer(ephemeral=True)
@@ -545,22 +570,26 @@ async def get_data_alt(ctx):
     except Exception as e:
         await ctx.respond(f"Could not get data!\n{e}",ephemeral=True)
 
-@bot.slash_command(name="atcf_reset",description="Reset ATCF data back to its default state.")
+
+@bot.slash_command(name="atcf_reset", description="Reset ATCF data back to its default state.")
 @commands.is_owner()
 async def atcf_reset(ctx):
     atcf.reset()
     await ctx.respond("ATCF data reset.",ephemeral=True)
 
-@bot.slash_command(name="github",description="Link to CycloMonitor's GitHub repository")
+
+@bot.slash_command(name="github", description="Link to CycloMonitor's GitHub repository")
 async def github(ctx):
     # PLEASE CHANGE THE LINK IF YOU ARE FORKING THIS PROJECT.
     await ctx.respond("CycloMonitor is free software licensed under the terms of the GNU Affero General Public License Version 3. The source code is available at https://github.com/ntvmb/cyclomonitor, and the full license can be found in the repository's `LICENSE` file.\nFYI, you can use the GitHub repository to report issues.",ephemeral=True)
 
-@bot.slash_command(name="copyright",description="Copyright notice")
+
+@bot.slash_command(name="copyright", description="Copyright notice")
 async def copyright(ctx):
     await ctx.respond(copyright_notice,ephemeral=True)
 
-@bot.slash_command(name="rsmc_list",description="A list of links Regional Specialized Meteorological Center (RSMC) websites.")
+
+@bot.slash_command(name="rsmc_list", description="A list of links Regional Specialized Meteorological Center (RSMC) websites.")
 async def rsmc_list(ctx):
     await ctx.defer(ephemeral=True)
     await ctx.respond("# RSMC list\nAtlantic (NATL) and Eastern Pacific (EPAC) - National Hurricane Center (NHC, RSMC Miami): <https://www.nhc.noaa.gov/> (Active May 15th through November 30th)\n\
@@ -572,8 +601,8 @@ Australia Region (AUS) - Bureau of Meteorology (BOM, RSMC Melbourne): <http://ww
 South Pacific (SPAC) - Fiji Meteorological Service (FMS, RSMC Nadi): <https://www.met.gov.fj> (Active November 1st through April 30th)\n\
 ## Some other tropical cyclone warning centers (TCWC)\n\
 Joint Typhoon Warning Center (JTWC): <https://www.metoc.navy.mil/jtwc/jtwc.html>\n\
-Philippine Atmospheric, Geophysical and Astronomical Services Administration (PAGASA): <https://bagong.pagasa.dost.gov.ph/>"
-    )
+Philippine Atmospheric, Geophysical and Astronomical Services Administration (PAGASA): <https://bagong.pagasa.dost.gov.ph/>")
+
 
 @bot.slash_command(name="get_log", description="Send the log to the owner")
 @commands.is_owner()
