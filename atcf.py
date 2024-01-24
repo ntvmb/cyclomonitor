@@ -21,12 +21,16 @@ pressures = []
 tc_classes = []
 lats_real = []
 longs_real = []
+log = logging.getLogger(__name__)
+
 
 class ATCFError(Exception):
     pass
 
+
 class WrongData(Exception):
     pass
+
 
 def reset():
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes, lats_real, longs_real
@@ -42,7 +46,9 @@ def reset():
     lats_real = []
     longs_real = []
 
+
 def parse_storm(line: str, *, mode="std"):
+    log.debug(f"Parsing line {line} in mode {mode}")
     storm = line.split()
     try:
         if not mode == "interp":
@@ -50,7 +56,7 @@ def parse_storm(line: str, *, mode="std"):
             names.append(storm[1])
             time = storm[2] + storm[3]
             # convert the timestamp from the given data to Unix time
-            timestamp = datetime.datetime(int('20'+time[0]+time[1]),int(time[2]+time[3]),int(time[4]+time[5]),int(time[6]+time[7]))
+            timestamp = datetime.datetime(int('20'+time[0]+time[1]), int(time[2]+time[3]), int(time[4]+time[5]), int(time[6]+time[7]))
             utc_time = calendar.timegm(timestamp.utctimetuple())
             timestamps.append(utc_time)
             lats.append(storm[4])
@@ -94,20 +100,24 @@ def parse_storm(line: str, *, mode="std"):
                     if c:
                         tc_classes.remove(c)
 
-        logging.warning(f"Entry {line} is formatted incorrectly. It will not be counted.")
+        log.warning(f"Entry {line} is formatted incorrectly. It will not be counted.")
         raise WrongData(f"Entry {line} is formatted incorrectly.")
 
 
 def load():
-    with open('atcf_sector_file','r') as file:
-        for line in file:
-            try:
-                parse_storm(line)
-            except WrongData:
-                continue
-    
     try:
-        with open('interp_sector_file','r') as file:
+        with open('atcf_sector_file', 'r') as file:
+            for line in file:
+                try:
+                    parse_storm(line)
+                except WrongData:
+                    continue
+    except FileNotFoundError:
+        log.info("No cached data found.")
+        return
+
+    try:
+        with open('interp_sector_file', 'r') as file:
             storms = []
             for line in file:
                 storms.append(line.split())
@@ -124,48 +134,54 @@ def load():
     except Exception:
         raise ATCFError("Failure to get interp data")
 
+
 # load cached data upon bringing in the module
 load()
+
 
 def get_data():
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes, lats_real, longs_real
     reset()
+    log.info("Using main ATCF source.")
     try:
         ra = requests.get(url, verify=False)
-        ri = requests.get(url_interp,verify=False)
-    except:
+        ri = requests.get(url_interp, verify=False)
+    except requests.HTTPError:
+        log.warning("Failed to get ATCF data from the main source. Using alt source.")
         get_data_alt()
         return
-    open('atcf_sector_file','wb').write(ra.content)
-    open('interp_sector_file','wb').write(ri.content)
+    open('atcf_sector_file', 'wb').write(ra.content)
+    open('interp_sector_file', 'wb').write(ri.content)
     load()
     # safeguard for some situations where the main ATCF website is down
     if len(cyclones) == 0:
-        get_data_alt()    
+        get_data_alt()
+
 
 def get_data_alt():
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes, lats_real, longs_real
     reset()
+    log.info("Using alternate ATCF source.")
     try:
-        r = requests.get("https://api.knackwx.com/atcf/v1",verify=False)
-    except:
+        r = requests.get("https://api.knackwx.com/atcf/v1", verify=False)
+    except requests.HTTPError:
         raise ATCFError("Failed to get ATCF data.")
-    open('atcf_sector_file.tmp','wb').write(r.content)
-    with open('atcf_sector_file.tmp','r') as f:
+    open('atcf_sector_file.tmp', 'wb').write(r.content)
+    with open('atcf_sector_file.tmp', 'r') as f:
         tc_list = json.load(f)
 
     # for debugging
-    with open('atcf_sector_file','w') as f:
+    with open('atcf_sector_file', 'w') as f:
         for d in tc_list:
             f.write(d.get('atcf_sector_file')+"\n")
-    
-    with open('interp_sector_file','w') as f:
+
+    with open('interp_sector_file', 'w') as f:
         for d in tc_list:
             f.write(d.get('interp_sector_file')+"\n")
 
     for d in tc_list:
         try:
             parse_storm(d.get('atcf_sector_file'))
-            parse_storm(d.get('interp_sector_file'),mode="interp")
+            parse_storm(d.get('interp_sector_file'), mode="interp")
         except WrongData:
             continue

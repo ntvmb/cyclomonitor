@@ -18,12 +18,14 @@ import atcf
 import errors
 import datetime
 import calendar
-import warnings
 import logging
 import time
 import asyncio
 from uptime import *
 from sys import exit
+
+if __name__ != "__main__":
+    raise ImportError("This is the main module of a Discord bot. You shouldn't import this.")
 
 logname = 'bot.log'
 logging.basicConfig(filename=logname,
@@ -39,7 +41,7 @@ except ModuleNotFoundError:
 try:
     me = singleton.SingleInstance() # Prevent more than one instance from running at once
 except singleton.SingleInstanceException:
-    logging.critical("Another instance of CycloMonitor is already running!")
+    print("Another instance of CycloMonitor is already running!")
     exit(1)
 except NameError:
     pass
@@ -385,14 +387,14 @@ async def update_alt(ctx):
     cog.last_update = math.floor(time.time())
     global_vars.write("last_update", cog.last_update)
     if channel_id is not None:
-        await update_guild(ctx.guild_id,channel_id)
-        await ctx.respond("Updated!",ephemeral=True)
+        await update_guild(ctx.guild_id, channel_id)
+        await ctx.respond("Updated!", ephemeral=True)
     else:
-        await ctx.respond("Tracking channel is not set!",ephemeral=True)
+        await ctx.respond("Tracking channel is not set!", ephemeral=True)
     atcf.reset()
 
 
-@bot.slash_command(name="set_basins",description="Set basins to track")
+@bot.slash_command(name="set_basins", description="Set basins to track")
 @guild_only()
 @commands.has_guild_permissions(manage_guild=True)
 async def set_basins(
@@ -406,8 +408,8 @@ async def set_basins(
 ):
     await ctx.defer(ephemeral=True)
     enabled_basins = str(int(natl)) + str(int(epac)) + str(int(cpac)) + str(int(wpac)) + str(int(nio)) + str(int(shem)) # this effectively represents a 6-bit binary value
-    server_vars.write("basins",enabled_basins,ctx.guild_id)
-    await ctx.respond("Basin configuration saved.",ephemeral=True)
+    server_vars.write("basins", enabled_basins, ctx.guild_id)
+    await ctx.respond("Basin configuration saved.", ephemeral=True)
 
 
 @bot.slash_command(name="update_all", description="Force CycloMonitor to update all guilds immediately")
@@ -418,11 +420,11 @@ async def update_all(ctx):
     cog.last_update = math.floor(time.time())
     global_vars.write("last_update", cog.last_update)
     for guild in bot.guilds:
-        channel_id = server_vars.get("tracking_channel",guild.id)
+        channel_id = server_vars.get("tracking_channel", guild.id)
         # attempt to update only if the tracking channel is set
         if channel_id is not None:
-            await update_guild(guild.id,channel_id)
-    await ctx.respond("Updated!",ephemeral=True)
+            await update_guild(guild.id, channel_id)
+    await ctx.respond("Updated!", ephemeral=True)
 
 
 @bot.slash_command(name="update_all_alt", description="Force CycloMonitor to update all guilds immediately (Fallback source)")
@@ -433,11 +435,11 @@ async def update_all_alt(ctx):
     cog.last_update = math.floor(time.time())
     global_vars.write("last_update", cog.last_update)
     for guild in bot.guilds:
-        channel_id = server_vars.get("tracking_channel",guild.id)
+        channel_id = server_vars.get("tracking_channel", guild.id)
         # attempt to update only if the tracking channel is set
         if channel_id is not None:
-            await update_guild(guild.id,channel_id)
-    await ctx.respond("Updated!",ephemeral=True)
+            await update_guild(guild.id, channel_id)
+    await ctx.respond("Updated!", ephemeral=True)
 
 
 @bot.slash_command(name="announce_all", description="Make an announcement to all servers")
@@ -448,57 +450,57 @@ async def announce_all(
 ):
     await ctx.defer(ephemeral=True)
     for guild in bot.guilds:
-        channel_id = server_vars.get("tracking_channel",guild.id)
+        channel_id = server_vars.get("tracking_channel", guild.id)
         if channel_id is not None:
             channel = bot.get_channel(channel_id)
             await channel.send(announcement)
-    await ctx.respond(f"Announced to all servers:\n{announcement}",ephemeral=True)
+    await ctx.respond(f"Announced to all servers:\n{announcement}", ephemeral=True)
 
 
 @bot.slash_command(name="announce_basin", description="Make an announcement regarding a specific basin")
 @commands.is_owner()
 async def announce_basin(
     ctx: discord.ApplicationContext,
-    basin: Option(str, "Basin which this applies to",choices=["natl","epac","cpac","wpac","nio","shem"]),
+    basin: Option(str, "Basin which this applies to", choices=["natl", "epac", "cpac", "wpac", "nio", "shem"]),
     announcement: Option(str, "Message to announce")
 ):
     await ctx.defer(ephemeral=True)
     for guild in bot.guilds:
-        channel_id = server_vars.get("tracking_channel",guild.id)
-        enabled_basins = server_vars.get("basins",guild.id)
+        channel_id = server_vars.get("tracking_channel", guild.id)
+        enabled_basins = server_vars.get("basins", guild.id)
         if channel_id is not None:
             channel = bot.get_channel(channel_id)
             send_message = (basin == "natl" and enabled_basins[0] == "1") or (basin == "epac" and enabled_basins[1] == "1") or (basin == "cpac" and enabled_basins[2] == "1") or (basin == "wpac" and enabled_basins[3] == "1") or (basin == "nio" and enabled_basins[4] == "1") or (basin == "shem" and enabled_basins[5] == "1")
             if send_message:
                 await channel.send(f"Announcement for {basin}:\n{announcement}")
-    await ctx.respond(f"Announced for {basin}:\n{announcement}",ephemeral=True)
+    await ctx.respond(f"Announced for {basin}:\n{announcement}", ephemeral=True)
 
 
 @bot.slash_command(name="announce_file", description="Announce to all servers from a text file")
 @commands.is_owner()
 async def announce_file(
     ctx: discord.ApplicationContext,
-    file: Option(discord.SlashCommandOptionType.attachment,"Text file")
+    file: Option(discord.SlashCommandOptionType.attachment, "Text file")
 ):
     await ctx.defer(ephemeral=True)
     print(file.content_type)
     if file.content_type.startswith('text'):
-        with open('announcement.md','wb') as f:
+        with open('announcement.md', 'wb') as f:
             await file.save(f)
-        announcement = open('announcement.md','r').read()
+        announcement = open('announcement.md', 'r').read()
         for guild in bot.guilds:
-            channel_id = server_vars.get("tracking_channel",guild.id)
+            channel_id = server_vars.get("tracking_channel", guild.id)
             if channel_id is not None:
                 channel = bot.get_channel(channel_id)
                 await channel.send(announcement)
-        await ctx.respond(f"Announced to all servers:\n{str(announcement)}",ephemeral=True)
+        await ctx.respond(f"Announced to all servers:\n{str(announcement)}", ephemeral=True)
     else:
-        await ctx.respond("Error: Not a text file!",ephemeral=True)
+        await ctx.respond("Error: Not a text file!", ephemeral=True)
 
 
 @bot.slash_command(name="invite", description="Add this bot to your server!")
 async def invite(ctx):
-    await ctx.respond("Here's my invite link!\n<https://discord.com/api/oauth2/authorize?client_id=1107462705004167230&permissions=67496000&scope=bot>",ephemeral=True)
+    await ctx.respond("Here's my invite link!\n<https://discord.com/api/oauth2/authorize?client_id=1107462705004167230&permissions=67496000&scope=bot>", ephemeral=True)
 
 
 @bot.slash_command(name="statistics", description="Show this bot's records")
@@ -507,7 +509,7 @@ async def statistics(ctx):
     strongest_storm = global_vars.get("strongest_storm")
     if strongest_storm is None:
         # If the above method returned None then it means that it cannot load the JSON file.
-        await ctx.respond("Could not get global variables.",ephemeral=True)
+        await ctx.respond("Could not get global variables.", ephemeral=True)
         return
     yikes_count = global_vars.get("yikes_count")
     guild_count = global_vars.get("guild_count")
@@ -531,9 +533,9 @@ async def yikes(ctx):
         count += 1
     else:
         count = 1
-    global_vars.write("yikes_count",count)
+    global_vars.write("yikes_count", count)
     for guild in bot.guilds:
-        channel_id = server_vars.get("tracking_channel",guild.id)
+        channel_id = server_vars.get("tracking_channel", guild.id)
         if channel_id is not None:
             channel = bot.get_channel(channel_id)
             await channel.send(f"The yikes count is now {count}!")
@@ -549,11 +551,11 @@ async def get_data(ctx):
         atcf.get_data()
         cog.last_update = math.floor(time.time())
         global_vars.write("last_update", cog.last_update)
-        with open('atcf_sector_file','r') as f:
+        with open('atcf_sector_file', 'r') as f:
             content = f.read()
-            await ctx.respond(f"ATCF data downloaded.\n{content}",ephemeral=True)
+            await ctx.respond(f"ATCF data downloaded.\n{content}", ephemeral=True)
     except atcf.ATCFError as e:
-        await ctx.respond(f"Could not get data!\n{e}",ephemeral=True)
+        await ctx.respond(f"Could not get data!\n{e}", ephemeral=True)
 
 
 @bot.slash_command(name="get_data_alt", description="Get the latest ATCF data without triggering an update (Fallback source)")
@@ -564,29 +566,29 @@ async def get_data_alt(ctx):
         atcf.get_data_alt()
         cog.last_update = math.floor(time.time())
         global_vars.write("last_update", cog.last_update)
-        with open('atcf_sector_file','r') as f:
+        with open('atcf_sector_file', 'r') as f:
             content = f.read()
-            await ctx.respond(f"ATCF data downloaded.\n{content}",ephemeral=True)
+            await ctx.respond(f"ATCF data downloaded.\n{content}", ephemeral=True)
     except Exception as e:
-        await ctx.respond(f"Could not get data!\n{e}",ephemeral=True)
+        await ctx.respond(f"Could not get data!\n{e}", ephemeral=True)
 
 
 @bot.slash_command(name="atcf_reset", description="Reset ATCF data back to its default state.")
 @commands.is_owner()
 async def atcf_reset(ctx):
     atcf.reset()
-    await ctx.respond("ATCF data reset.",ephemeral=True)
+    await ctx.respond("ATCF data reset.", ephemeral=True)
 
 
 @bot.slash_command(name="github", description="Link to CycloMonitor's GitHub repository")
 async def github(ctx):
     # PLEASE CHANGE THE LINK IF YOU ARE FORKING THIS PROJECT.
-    await ctx.respond("CycloMonitor is free software licensed under the terms of the GNU Affero General Public License Version 3. The source code is available at https://github.com/ntvmb/cyclomonitor, and the full license can be found in the repository's `LICENSE` file.\nFYI, you can use the GitHub repository to report issues.",ephemeral=True)
+    await ctx.respond("CycloMonitor is free software licensed under the terms of the GNU Affero General Public License Version 3. The source code is available at https://github.com/ntvmb/cyclomonitor, and the full license can be found in the repository's `LICENSE` file.\nFYI, you can use the GitHub repository to report issues.", ephemeral=True)
 
 
 @bot.slash_command(name="copyright", description="Copyright notice")
 async def copyright(ctx):
-    await ctx.respond(copyright_notice,ephemeral=True)
+    await ctx.respond(copyright_notice, ephemeral=True)
 
 
 @bot.slash_command(name="rsmc_list", description="A list of links Regional Specialized Meteorological Center (RSMC) websites.")
