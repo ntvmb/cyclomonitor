@@ -41,7 +41,7 @@ def get(var_name: str, guild: int):
         with open(json_file, 'r') as f:
             data = json.load(f)
     except Exception:
-        logging.warning("Cannot open JSON file")
+        log.warning("Cannot open JSON file")
         return None
     for i in data:
         if i.get(str(guild)) is not None:
@@ -56,7 +56,7 @@ def remove_guild(guild: int):
         with open(json_file, 'r') as f:
             data = json.load(f)
     except Exception:
-        logging.warning("Cannot open JSON file")
+        log.warning("Cannot open JSON file")
         return None
     for i in data:
         if i.get(str(guild)) is not None:

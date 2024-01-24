@@ -23,7 +23,7 @@ def get(var_name: str):
         with open(json_file, 'r') as f:
             data = json.load(f)
     except Exception:
-        logging.warning("Cannot open JSON file")
+        log.warning("Cannot open JSON file")
         return None
     value = data.get(var_name)
     return value
