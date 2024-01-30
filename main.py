@@ -271,7 +271,11 @@ async def update_guild(guild: int, to_channel: int):
         if len(atcf.cyclones) == 0:
             await channel.send(f"No TCs or areas of interest active at this time.")
         # it is best practice to use official sources when possible
-        await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
+        try:
+            next_run = calendar.timegm(cog.auto_update.next_iteration.utctimetuple())
+        except AttributeError:
+            next_run = "Auto update task is not running. Please let the owner know so they can fix this."
+        await channel.send(f"Next automatic update: <t:{next_run}:f>")
         await channel.send("For more information, check your local RSMC website (see `/rsmc_list`) or go to <https://www.metoc.navy.mil/jtwc/jtwc.html>.")
 
 
@@ -284,14 +288,27 @@ async def on_ready():
     # stop the monitor if it is already running
     # this is to prevent a situation where there are two instances of the task running in some edge cases
     try:
-        cog.auto_update.stop()
+        cog.auto_update.cancel()
     except NameError:
-        pass
-    cog = monitor(bot)
-    cog.auto_update.start()
+        cog = monitor(bot)
+    if cog.auto_update.next_iteration is None:
+        cog.auto_update.start()
     # force an automatic update if last_update is not set or more than 6 hours have passed since the last update
     if (cog.last_update is None) or (math.floor(time.time()) - cog.last_update > 21600):
         await cog.auto_update()
+
+
+@bot.event
+async def on_disconnect():
+    try:
+        if cog.auto_update.next_iteration is not None:
+            cog.auto_update.cancel()
+            logging.info("Automatic updates suspended as the client has disconnected.")
+            await bot.wait_for('connect')
+            logging.info("Connection established. Resuming auto updates...")
+            cog.auto_update.start()
+    except NameError:
+        pass
 
 
 @bot.event
@@ -612,5 +629,42 @@ async def get_log(ctx):
     await ctx.defer(ephemeral=True)
     await cog.on_update_error(errors.LogRequested("The bot's log was requested."))
     await ctx.respond("Attempted to send the log!")
+
+
+@bot.slash_command(name="suspend_updates", description="Suspend automatic updates.")
+@commands.is_owner()
+async def suspend_updates(ctx):
+    await ctx.defer(ephemeral=True)
+    if cog.auto_update.next_iteration is not None:
+        cog.auto_update.cancel()
+        await ctx.respond("Suspended automatic updates.")
+    else:
+        await ctx.respond("The auto update task already stopped.")
+
+
+@bot.slash_command(name="resume_updates", description="Resume automatic updates.")
+@commands.is_owner()
+async def resume_updates(ctx):
+    await ctx.defer(ephemeral=True)
+    if cog.auto_update.next_iteration is None:
+        cog.auto_update.start()
+        await ctx.respond("Resumed automatic updates.")
+    else:
+        await ctx.respond("The auto update task is already running.")
+
+
+@bot.slash_command(name="feedback", description="Send feedback to the owner.")
+async def feedback(
+        ctx: discord.ApplicationContext,
+        msg: Option(str, "Message to send.")
+):
+    await ctx.defer(ephemeral=True)
+    app = await bot.application_info()
+    bot_owner = app.owner
+    if bot_owner is not None:
+        await bot_owner.send(f"Message from {ctx.author}:\n{msg}")
+        await ctx.respond(f"Successfully sent to the bot owner:\n{msg}")
+    else:
+        await ctx.respond("I cannot find the bot owner.")
 
 bot.run(token)
