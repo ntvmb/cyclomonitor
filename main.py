@@ -299,19 +299,6 @@ async def on_ready():
 
 
 @bot.event
-async def on_disconnect():
-    try:
-        if cog.auto_update.next_iteration is not None:
-            cog.auto_update.cancel()
-            logging.info("Automatic updates suspended as the client has disconnected.")
-            await bot.wait_for('connect')
-            logging.info("Connection established. Resuming auto updates...")
-            cog.auto_update.start()
-    except NameError:
-        pass
-
-
-@bot.event
 async def on_guild_join(guild: discord.Guild):
     logging.info(f"Bot added to guild: {guild.name}")
     count = len(bot.guilds)
