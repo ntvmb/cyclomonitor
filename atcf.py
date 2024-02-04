@@ -56,8 +56,9 @@ def parse_storm(line: str, *, mode="std"):
             names.append(storm[1])
             time = storm[2] + storm[3]
             # convert the timestamp from the given data to Unix time
-            timestamp = datetime.datetime(int('20'+time[0]+time[1]), int(time[2]+time[3]), int(time[4]+time[5]), int(time[6]+time[7]))
-            utc_time = calendar.timegm(timestamp.utctimetuple())
+            timestamp = datetime.datetime.strptime(time, "%y%m%d%H%M")
+            timestamp = timestamp.replace(tzinfo=datetime.UTC)
+            utc_time = int(timestamp.timestamp())
             timestamps.append(utc_time)
             lats.append(storm[4])
             longs.append(storm[5])
@@ -144,10 +145,16 @@ def get_data():
     reset()
     log.info("Using main ATCF source.")
     try:
-        ra = requests.get(url, verify=False)
-        ri = requests.get(url_interp, verify=False)
+        ra = requests.get(url, verify=False, timeout=60)
+        ra.raise_for_status()
+        ri = requests.get(url_interp, verify=False, timeout=60)
+        ri.raise_for_status()
     except requests.HTTPError:
         log.warning("Failed to get ATCF data from the main source. Using alt source.")
+        get_data_alt()
+        return
+    except requests.Timeout:
+        log.warning("Request timed out. Trying fallback source...")
         get_data_alt()
         return
     open('atcf_sector_file', 'wb').write(ra.content)
@@ -163,9 +170,12 @@ def get_data_alt():
     reset()
     log.info("Using alternate ATCF source.")
     try:
-        r = requests.get("https://api.knackwx.com/atcf/v1", verify=False)
+        r = requests.get("https://api.knackwx.com/atcf/v1", verify=False, timeout=60)
+        r.raise_for_status()
     except requests.HTTPError:
         raise ATCFError("Failed to get ATCF data.")
+    except requests.Timeout:
+        raise ATCFError("Request timed out.")
     open('atcf_sector_file.tmp', 'wb').write(r.content)
     with open('atcf_sector_file.tmp', 'r') as f:
         tc_list = json.load(f)
