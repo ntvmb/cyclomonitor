@@ -16,7 +16,7 @@ cd cyclomonitor
 ```
 Install prerequisites:
 ```
-pip3 install --user py-cord requests tendo
+pip3 install --user -r requirements.txt
 ```
 Some Linux distributions may require you to [set up a virtual environment](https://docs.python.org/3/library/venv.html) to install the necessary packages.
 
