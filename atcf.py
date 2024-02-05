@@ -8,8 +8,9 @@ import logging
 from itertools import zip_longest
 
 # initalize variables
-url = 'https://www.nrlmry.navy.mil/tcdat/sectors/atcf_sector_file'
-url_interp = 'https://www.nrlmry.navy.mil/tcdat/sectors/interp_sector_file'
+url = "https://www.nrlmry.navy.mil/tcdat/sectors/atcf_sector_file"
+url_interp = "https://www.nrlmry.navy.mil/tcdat/sectors/interp_sector_file"
+url_alt = "https://api.knackwx.com/atcf/v2"
 cyclones = []
 names = []
 timestamps = []
@@ -74,21 +75,21 @@ def parse_storm(line: str, *, mode="std"):
         faulty_entry = len(cyclones) - 1
         for index, (cy, n, ts, lat, lon, b, w, p) in enumerate(zip_longest(cyclones, names, timestamps, lats, longs, basins, winds, pressures)):
             if index == faulty_entry:
-                if cy:
+                if cy is not None:
                     cyclones.remove(cy)
-                if n:
+                if n is not None:
                     names.remove(n)
-                if ts:
+                if ts is not None:
                     timestamps.remove(ts)
-                if lat:
+                if lat is not None:
                     lats.remove(lat)
-                if lon:
+                if lon is not None:
                     longs.remove(lon)
-                if b:
+                if b is not None:
                     basins.remove(b)
-                if w:
+                if w is not None:
                     winds.remove(w)
-                if p:
+                if p is not None:
                     pressures.remove(p)
 
         if mode == "interp":
@@ -124,6 +125,7 @@ def load():
                 storms.append(line.split())
             for tc in cyclones:
                 for storm in storms:
+                    # sort interp data
                     cid = storm[0][2] + storm[0][3] + storm[6]
                     if cid == tc:
                         lats_real.append(float(storm[4]))
@@ -145,20 +147,18 @@ def get_data():
     reset()
     log.info("Using main ATCF source.")
     try:
-        ra = requests.get(url, verify=False, timeout=60)
+        ra = requests.get(url, verify=False, timeout=15)
         ra.raise_for_status()
-        ri = requests.get(url_interp, verify=False, timeout=60)
+        ri = requests.get(url_interp, verify=False, timeout=15)
         ri.raise_for_status()
-    except requests.HTTPError:
-        log.warning("Failed to get ATCF data from the main source. Using alt source.")
+    except requests.RequestException as e:
+        log.warning(f"Getting data from main source failed: {e}.")
         get_data_alt()
         return
-    except requests.Timeout:
-        log.warning("Request timed out. Trying fallback source...")
-        get_data_alt()
-        return
-    open('atcf_sector_file', 'wb').write(ra.content)
-    open('interp_sector_file', 'wb').write(ri.content)
+    with open('atcf_sector_file', 'wb') as f:
+        f.write(ra.content)
+    with open('interp_sector_file', 'wb') as f:
+        f.write(ri.content)
     load()
     # safeguard for some situations where the main ATCF website is down
     if len(cyclones) == 0:
@@ -170,28 +170,29 @@ def get_data_alt():
     reset()
     log.info("Using alternate ATCF source.")
     try:
-        r = requests.get("https://api.knackwx.com/atcf/v1", verify=False, timeout=60)
+        r = requests.get(url_alt, verify=False, timeout=15)
         r.raise_for_status()
-    except requests.HTTPError:
-        raise ATCFError("Failed to get ATCF data.")
     except requests.Timeout:
         raise ATCFError("Request timed out.")
-    open('atcf_sector_file.tmp', 'wb').write(r.content)
+    except requests.RequestException:
+        raise ATCFError("Failed to get ATCF data.")
+    with open('atcf_sector_file.tmp', 'wb') as f:
+        f.write(r.content)
     with open('atcf_sector_file.tmp', 'r') as f:
         tc_list = json.load(f)
 
     # for debugging
     with open('atcf_sector_file', 'w') as f:
         for d in tc_list:
-            f.write(d.get('atcf_sector_file')+"\n")
+            f.write(d['atcf_sector_file']+"\n")
 
     with open('interp_sector_file', 'w') as f:
         for d in tc_list:
-            f.write(d.get('interp_sector_file')+"\n")
+            f.write(d['interp_sector_file']+"\n")
 
     for d in tc_list:
         try:
-            parse_storm(d.get('atcf_sector_file'))
-            parse_storm(d.get('interp_sector_file'), mode="interp")
+            parse_storm(d['atcf_sector_file'])
+            parse_storm(d['interp_sector_file'], mode="interp")
         except WrongData:
             continue
