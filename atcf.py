@@ -70,7 +70,7 @@ def parse_storm(line: str, *, mode="std"):
             lats_real.append(float(storm[4]))
             longs_real.append(float(storm[5]))
             tc_classes.append(storm[7])
-    except Exception:
+    except Exception as e:
         # remove the faulty entry
         faulty_entry = len(cyclones) - 1
         for index, (cy, n, ts, lat, lon, b, w, p) in enumerate(zip_longest(cyclones, names, timestamps, lats, longs, basins, winds, pressures)):
@@ -95,15 +95,15 @@ def parse_storm(line: str, *, mode="std"):
         if mode == "interp":
             for index, (la, lo, c) in enumerate(zip_longest(lats_real, longs_real, tc_classes)):
                 if index == faulty_entry:
-                    if la:
+                    if la is not None:
                         lats_real.remove(la)
-                    if lo:
+                    if lo is not None:
                         longs_real.remove(lo)
-                    if c:
+                    if c is not None:
                         tc_classes.remove(c)
 
         log.warning(f"Entry {line} is formatted incorrectly. It will not be counted.")
-        raise WrongData(f"Entry {line} is formatted incorrectly.")
+        raise WrongData(f"Entry {line} is formatted incorrectly.") from e
 
 
 def load():
@@ -131,11 +131,10 @@ def load():
                         lats_real.append(float(storm[4]))
                         longs_real.append(float(storm[5]))
                         tc_classes.append(storm[7])
-                        break
-                else:
-                    raise ATCFError("How did you get here?")
-    except Exception:
-        raise ATCFError("Failure to get interp data")
+                        return
+                raise ATCFError("How did you get here?")
+    except Exception as e:
+        raise ATCFError("Failure to get interp data") from e
 
 
 # load cached data upon bringing in the module
@@ -172,10 +171,10 @@ def get_data_alt():
     try:
         r = requests.get(url_alt, verify=False, timeout=15)
         r.raise_for_status()
-    except requests.Timeout:
-        raise ATCFError("Request timed out.")
-    except requests.RequestException:
-        raise ATCFError("Failed to get ATCF data.")
+    except requests.Timeout as e:
+        raise ATCFError("Request timed out.") from e
+    except requests.RequestException as exc:
+        raise ATCFError("Failed to get ATCF data.") from exc
     with open('atcf_sector_file.tmp', 'wb') as f:
         f.write(r.content)
     with open('atcf_sector_file.tmp', 'r') as f:

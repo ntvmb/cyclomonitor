@@ -46,7 +46,8 @@ except singleton.SingleInstanceException:
 except NameError:
     pass
 
-token = open('TOKEN', 'r').read().split()[0] # split in case of any newlines or spaces
+with open('TOKEN', 'r') as f:
+    token = f.read().split()[0] # split in case of any newlines or spaces
 bot = discord.Bot(intents=discord.Intents.default())
 # it is ideal to put out the information as soon as possible, but there may be overrides
 times = [
@@ -81,8 +82,7 @@ class monitor(commands.Cog):
         for do_suppress in suppressed:
             if not do_suppress:
                 return False
-        else:
-            return True
+        return True
 
     @tasks.loop(time=times)
     async def auto_update(self):
@@ -266,9 +266,9 @@ async def update_guild(guild: int, to_channel: int):
         for was_sent in sent_list:
             if was_sent:
                 break
-        else:
+        else: # no break
             await channel.send(f"No TCs or areas of interest active at this time.")
-        if len(atcf.cyclones) == 0:
+        if not atcf.cyclones:
             await channel.send(f"No TCs or areas of interest active at this time.")
         # it is best practice to use official sources when possible
         try:
@@ -411,7 +411,7 @@ async def set_basins(
     shem: Option(bool, "Southern hemisphere")
 ):
     await ctx.defer(ephemeral=True)
-    enabled_basins = str(int(natl)) + str(int(epac)) + str(int(cpac)) + str(int(wpac)) + str(int(nio)) + str(int(shem)) # this effectively represents a 6-bit binary value
+    enabled_basins = f"{int(natl)}{int(epac)}{int(cpac)}{int(wpac)}{int(nio)}{int(shem)}" # this effectively represents a 6-bit binary value
     server_vars.write("basins", enabled_basins, ctx.guild_id)
     await ctx.respond("Basin configuration saved.", ephemeral=True)
 
@@ -497,7 +497,7 @@ async def announce_file(
             if channel_id is not None:
                 channel = bot.get_channel(channel_id)
                 await channel.send(announcement)
-        await ctx.respond(f"Announced to all servers:\n{str(announcement)}", ephemeral=True)
+        await ctx.respond(f"Announced to all servers:\n{announcement}", ephemeral=True)
     else:
         await ctx.respond("Error: Not a text file!", ephemeral=True)
 
