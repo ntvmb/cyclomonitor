@@ -131,8 +131,9 @@ def load():
                         lats_real.append(float(storm[4]))
                         longs_real.append(float(storm[5]))
                         tc_classes.append(storm[7])
-                        return
-                raise ATCFError("How did you get here?")
+                        break
+                else: # no break
+                    raise ATCFError("How did you get here?")
     except Exception as e:
         raise ATCFError("Failure to get interp data") from e
 
