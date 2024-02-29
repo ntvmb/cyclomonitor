@@ -149,6 +149,7 @@ async def update_guild(guild: int, to_channel: int):
     enabled_basins = server_vars.get("basins", guild)
     current_TC_record = global_vars.get("strongest_storm") # record-keeping
     if enabled_basins is not None:
+        sent_list = []
         for cyc_id, basin, wind, name, timestamp, lat, long, pressure, tc_class, lat_real, long_real in zip(atcf.cyclones, atcf.basins, atcf.winds, atcf.names, atcf.timestamps, atcf.lats, atcf.longs, atcf.pressures, atcf.tc_classes, atcf.lats_real, atcf.longs_real):
             mph = round(wind * 1.15077945 / 5) * 5 # per standard, we round to the nearest 5
             kmh = round(wind * 1.852 / 5) * 5
@@ -165,7 +166,6 @@ async def update_guild(guild: int, to_channel: int):
 
             if pressure == 0:
                 pressure = math.nan
-            sent_list = []
             '''
             Wind speeds are ignored when marking an invest.
             There is one exception, which is for subtropical cyclones, because not all agencies issue advisories/warnings on STCs (notably CPHC and JTWC).
@@ -268,13 +268,11 @@ async def update_guild(guild: int, to_channel: int):
                 break
         else: # no break
             await channel.send(f"No TCs or areas of interest active at this time.")
-        if not atcf.cyclones:
-            await channel.send(f"No TCs or areas of interest active at this time.")
-        # it is best practice to use official sources when possible
         try:
             next_run = calendar.timegm(cog.auto_update.next_iteration.utctimetuple())
         except AttributeError:
             next_run = "Auto update task is not running. Please let the owner know so they can fix this."
+        # it is best practice to use official sources when possible
         await channel.send(f"Next automatic update: <t:{next_run}:f>")
         await channel.send("For more information, check your local RSMC website (see `/rsmc_list`) or go to <https://www.metoc.navy.mil/jtwc/jtwc.html>.")
 
