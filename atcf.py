@@ -1,7 +1,6 @@
 # CycloMonitor Copyright (C) 2023 Nathaniel Greenwell
 # This program comes with ABSOLUTELY NO WARRANTY; for details see main.py
 import datetime
-import calendar
 import requests
 import json
 import logging
@@ -31,6 +30,11 @@ class ATCFError(Exception):
 
 class WrongData(Exception):
     pass
+
+
+def main():
+    print("CycloMonitor ATCF Module")
+    print("CLI coming soon")
 
 
 def reset():
@@ -196,3 +200,7 @@ def get_data_alt():
             parse_storm(d['interp_sector_file'], mode="interp")
         except WrongData:
             continue
+
+
+if __name__ == "__main__":
+    main()

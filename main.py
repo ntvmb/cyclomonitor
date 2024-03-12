@@ -17,7 +17,6 @@ import global_vars
 import atcf
 import errors
 import datetime
-import calendar
 import logging
 import time
 import asyncio
@@ -75,7 +74,7 @@ class monitor(commands.Cog):
                 suppressed.append(prev_timestamps[index] >= timestamp)
             except IndexError:
                 suppressed.append(False)
-            logging.info(f"Comparison of timestamps for {cyclone} returned {suppressed[index]}.")
+            logging.debug(f"Comparison of timestamps for {cyclone} returned {suppressed[index]}.")
         if not atcf.cyclones:
             suppressed.append(False)
         # only suppress an automatic update if all active systems requested a suppression
@@ -269,7 +268,7 @@ async def update_guild(guild: int, to_channel: int):
         else: # no break
             await channel.send(f"No TCs or areas of interest active at this time.")
         try:
-            next_run = calendar.timegm(cog.auto_update.next_iteration.utctimetuple())
+            next_run = int(cog.auto_update.next_iteration.timestamp())
         except AttributeError:
             next_run = "Auto update task is not running. Please let the owner know so they can fix this."
         # it is best practice to use official sources when possible
