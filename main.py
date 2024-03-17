@@ -21,6 +21,7 @@ import logging
 import time
 import asyncio
 from uptime import *
+from dir_calc import get_dir
 from sys import exit
 
 if __name__ != "__main__":
@@ -55,6 +56,8 @@ times = [
     datetime.time(14, 0, tzinfo=datetime.UTC),
     datetime.time(20, 0, tzinfo=datetime.UTC)
 ]
+KT_TO_MPH = 1.15077945
+KT_TO_KMH = 1.852
 
 
 class monitor(commands.Cog):
@@ -68,7 +71,9 @@ class monitor(commands.Cog):
 
     def should_suppress(self, prev_timestamps: list):
         suppressed = []
-        for index, (cyclone, timestamp) in enumerate(zip(atcf.cyclones, atcf.timestamps)):
+        for index, (cyclone, timestamp) in enumerate(zip(
+            atcf.cyclones, atcf.timestamps
+        )):
             try:
                 # will this system request for a suppression?
                 suppressed.append(prev_timestamps[index] >= timestamp)
@@ -110,7 +115,7 @@ class monitor(commands.Cog):
                     if channel_id is not None:
                         channel = bot.get_channel(channel_id)
                         await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- ATCF is down\n- All active systems dissipated recently\n- A manual update was called recently")
-                        await channel.send(f"Next automatic update: <t:{calendar.timegm(cog.auto_update.next_iteration.utctimetuple())}:f>")
+                        await channel.send(f"Next automatic update: <t:{cog.auto_update.next_iteration.timestamp()}:f>")
                 return
         self.last_update = math.floor(time.time())
         global_vars.write("last_update", self.last_update)
@@ -149,9 +154,24 @@ async def update_guild(guild: int, to_channel: int):
     current_TC_record = global_vars.get("strongest_storm") # record-keeping
     if enabled_basins is not None:
         sent_list = []
-        for cyc_id, basin, wind, name, timestamp, lat, long, pressure, tc_class, lat_real, long_real in zip(atcf.cyclones, atcf.basins, atcf.winds, atcf.names, atcf.timestamps, atcf.lats, atcf.longs, atcf.pressures, atcf.tc_classes, atcf.lats_real, atcf.longs_real):
-            mph = round(wind * 1.15077945 / 5) * 5 # per standard, we round to the nearest 5
-            kmh = round(wind * 1.852 / 5) * 5
+        for (
+            cyc_id, basin, wind, name, timestamp, lat, long, pressure,
+            tc_class, lat_real, long_real, movement_speed, movement_dir
+        ) in zip(
+            atcf.cyclones, atcf.basins, atcf.winds, atcf.names,
+            atcf.timestamps, atcf.lats, atcf.longs, atcf.pressures,
+            atcf.tc_classes, atcf.lats_real, atcf.longs_real,
+            atcf.movement_speeds, atcf.movement_dirs
+        ):
+            mph = round(wind * KT_TO_MPH / 5) * 5 # per standard, we round to the nearest 5
+            kmh = round(wind * KT_TO_KMH / 5) * 5
+            c_dir = get_dir(movement_dir)
+            if (not c_dir) or (movement_speed < 0):
+                movement_str = "not available"
+            else:
+                movement_mph = movement_speed * KT_TO_MPH
+                movement_kph = movement_speed * KT_TO_KMH
+                movement_str = f"{c_dir} at {movement_speed:.0f} kt ({movement_mph:.0f} mph/{movement_kph:.0f} kph)"
             # accomodate for basin crossovers
             if lat_real > 0 and long_real > 30 and long_real < 97:
                 basin = "IO"
@@ -257,7 +277,7 @@ async def update_guild(guild: int, to_channel: int):
                 pressure = "N/A"
             if send_message:
                 try:
-                    await channel.send(f"# {emoji} {tc_class} {display_name}\nAs of <t:{timestamp}:f>, the center of {name} was located near {lat}, {long}. Maximum 1-minute sustained winds were {wind} kt ({mph} mph/{kmh} kph) and the minimum central pressure was {pressure} mb.")
+                    await channel.send(f"# {emoji} {tc_class} {display_name}\nAs of <t:{timestamp}:f>, the center of {name} was located near {lat}, {long}. Maximum 1-minute sustained winds were {wind} kt ({mph} mph/{kmh} kph) and the minimum central pressure was {pressure} mb. Present movement was {movement_str}.")
                 except discord.HTTPError:
                     logging.warning(f"Guild {guild} is unavailable. Skipping this guild.")
                     return

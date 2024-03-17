@@ -21,6 +21,8 @@ pressures = []
 tc_classes = []
 lats_real = []
 longs_real = []
+movement_speeds = []
+movement_dirs = []
 log = logging.getLogger(__name__)
 
 
@@ -38,7 +40,8 @@ def main():
 
 
 def reset():
-    global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes, lats_real, longs_real
+    global cyclones, names, timestamps, lats, longs, basins, winds, pressures
+    global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
     cyclones = []
     names = []
     timestamps = []
@@ -50,6 +53,8 @@ def reset():
     tc_classes = []
     lats_real = []
     longs_real = []
+    movement_speeds = []
+    movement_dirs = []
 
 
 def parse_storm(line: str, *, mode="std"):
@@ -74,6 +79,8 @@ def parse_storm(line: str, *, mode="std"):
             lats_real.append(float(storm[4]))
             longs_real.append(float(storm[5]))
             tc_classes.append(storm[7])
+            movement_speeds.append(float(storm[10]))
+            movement_dirs.append(float(storm[11]))
     except Exception as e:
         # remove the faulty entry
         faulty_entry = len(cyclones) - 1
@@ -97,7 +104,7 @@ def parse_storm(line: str, *, mode="std"):
                     pressures.remove(p)
 
         if mode == "interp":
-            for index, (la, lo, c) in enumerate(zip_longest(lats_real, longs_real, tc_classes)):
+            for index, (la, lo, c, ms, md) in enumerate(zip_longest(lats_real, longs_real, tc_classes, movement_speeds, movement_dirs)):
                 if index == faulty_entry:
                     if la is not None:
                         lats_real.remove(la)
@@ -105,6 +112,10 @@ def parse_storm(line: str, *, mode="std"):
                         longs_real.remove(lo)
                     if c is not None:
                         tc_classes.remove(c)
+                    if ms is not None:
+                        movement_speeds.remove(ms)
+                    if md is not None:
+                        movement_dirs.remove(md)
 
         log.warning(f"Entry {line} is formatted incorrectly. It will not be counted.")
         raise WrongData(f"Entry {line} is formatted incorrectly.") from e
@@ -135,6 +146,8 @@ def load():
                         lats_real.append(float(storm[4]))
                         longs_real.append(float(storm[5]))
                         tc_classes.append(storm[7])
+                        movement_speeds.append(float(storm[10]))
+                        movement_dirs.append(float(storm[11]))
                         break
                 else: # no break
                     raise ATCFError("How did you get here?")
@@ -147,7 +160,8 @@ load()
 
 
 def get_data():
-    global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes, lats_real, longs_real
+    global cyclones, names, timestamps, lats, longs, basins, winds, pressures
+    global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
     reset()
     log.info("Using main ATCF source.")
     try:
@@ -170,7 +184,8 @@ def get_data():
 
 
 def get_data_alt():
-    global cyclones, names, timestamps, lats, longs, basins, winds, pressures, tc_classes, lats_real, longs_real
+    global cyclones, names, timestamps, lats, longs, basins, winds, pressures
+    global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
     reset()
     log.info("Using alternate ATCF source.")
     try:
