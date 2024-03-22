@@ -61,6 +61,10 @@ def parse_storm(line: str, *, mode="std"):
     log.debug(f"Parsing line {line} in mode {mode}")
     storm = line.split()
     try:
+        if mode == "interp":
+            assert len(storm) == 12, f"Expected 12 columns for mode interp, got {len(storm)}."
+        else:
+            assert len(storm) == 9, f"Expected 9 columns for mode std, got {len(storm)}."
         if not mode == "interp":
             cyclones.append(storm[0])
             names.append(storm[1])
@@ -117,7 +121,7 @@ def parse_storm(line: str, *, mode="std"):
                     if md is not None:
                         movement_dirs.remove(md)
 
-        log.warning(f"Entry {line} is formatted incorrectly. It will not be counted.")
+        log.exception(f"Entry {line} is formatted incorrectly. It will not be counted.")
         raise WrongData(f"Entry {line} is formatted incorrectly.") from e
 
 
