@@ -1,4 +1,4 @@
-copyright_notice = """
+"""
 CycloMonitor - Discord bot that provides the latest information on TCs based on data from the US NRL's ATCF.
 Copyright (c) 2023 Virtual Nate
 
@@ -23,6 +23,8 @@ import asyncio
 from uptime import *
 from dir_calc import get_dir
 from sys import exit
+
+copyright_notice = _ # the above docstring
 
 if __name__ != "__main__":
     raise ImportError("This is the main module of a Discord bot. You shouldn't import this.")
@@ -61,6 +63,7 @@ KT_TO_KMH = 1.852
 
 
 class monitor(commands.Cog):
+    """This class governs automated routines."""
     def __init__(self, bot):
         self.bot = bot
         self.last_update = global_vars.get("last_update")
@@ -70,6 +73,7 @@ class monitor(commands.Cog):
         self.auto_update.cancel()
 
     def should_suppress(self, prev_timestamps: list):
+        """Compare two lists of timestamps and return a boolean."""
         suppressed = []
         for index, (cyclone, timestamp) in enumerate(zip(
             atcf.cyclones, atcf.timestamps
@@ -148,6 +152,7 @@ class monitor(commands.Cog):
 
 # this function needs to be a coroutine since other coroutines are called
 async def update_guild(guild: int, to_channel: int):
+    """Given a guild ID and channel ID, post ATCF data."""
     logging.info(f"Performing update routines for guild {guild}")
     channel = bot.get_channel(to_channel)
     enabled_basins = server_vars.get("basins", guild)

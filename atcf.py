@@ -1,5 +1,18 @@
 # CycloMonitor Copyright (C) 2023 Nathaniel Greenwell
 # This program comes with ABSOLUTELY NO WARRANTY; for details see main.py
+"""
+CycloMonitor ATCF module
+
+Classes:
+ATCFError -- base exception for ATCF errors
+WrongData -- exception for invalid data
+Functions:
+reset -- reset ATCF data
+parse_storm -- parse ATCF data
+load -- load ATCF data
+get_data -- get ATCF data
+get_data_alt -- get ATCF data (alt source)
+"""
 import datetime
 import requests
 import json
@@ -27,10 +40,12 @@ log = logging.getLogger(__name__)
 
 
 class ATCFError(Exception):
+    """An Exception for general ATCF errors."""
     pass
 
 
 class WrongData(Exception):
+    """An Exception for incorrectly formatted data."""
     pass
 
 
@@ -40,6 +55,7 @@ def main():
 
 
 def reset():
+    """Reset ATCF data."""
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures
     global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
     cyclones = []
@@ -58,6 +74,15 @@ def reset():
 
 
 def parse_storm(line: str, *, mode="std"):
+    """Parse ATCF data.
+
+    Arguments:
+    line -- the data to be parsed
+    Keyword arguments:
+    mode -- parsing mode (default "std")
+    If mode is "interp", parse extra data provided in ATCF's
+    interp_sector_file.
+    """
     log.debug(f"Parsing line {line} in mode {mode}")
     storm = line.split()
     try:
@@ -126,6 +151,7 @@ def parse_storm(line: str, *, mode="std"):
 
 
 def load():
+    """Load ATCF data saved on disk."""
     try:
         with open('atcf_sector_file', 'r') as file:
             for line in file:
@@ -164,6 +190,7 @@ load()
 
 
 def get_data():
+    """Download ATCF data."""
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures
     global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
     reset()
@@ -188,6 +215,7 @@ def get_data():
 
 
 def get_data_alt():
+    """Download ATCF data (alt source)."""
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures
     global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
     reset()
