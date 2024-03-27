@@ -20,15 +20,23 @@ import datetime
 import logging
 import time
 import asyncio
+import ibtracs
+from types import GeneratorType
 from uptime import *
 from dir_calc import get_dir
+from io import StringIO
 from sys import exit
 
-copyright_notice = _ # the above docstring
+copyright_notice = """
+CycloMonitor - Discord bot that provides the latest information on TCs based on data from the US NRL's ATCF.
+Copyright (c) 2023 Virtual Nate
 
-if __name__ != "__main__":
-    raise ImportError("This is the main module of a Discord bot. You shouldn't import this.")
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
 
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+For those hosting a copy of this bot, you should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+"""
 logname = 'bot.log'
 logging.basicConfig(filename=logname,
                     filemode='a',
@@ -48,8 +56,6 @@ except singleton.SingleInstanceException:
 except NameError:
     pass
 
-with open('TOKEN', 'r') as f:
-    token = f.read().split()[0] # split in case of any newlines or spaces
 bot = discord.Bot(intents=discord.Intents.default())
 # it is ideal to put out the information as soon as possible, but there may be overrides
 times = [
@@ -64,9 +70,12 @@ KT_TO_KMH = 1.852
 
 class monitor(commands.Cog):
     """This class governs automated routines."""
+
     def __init__(self, bot):
         self.bot = bot
         self.last_update = global_vars.get("last_update")
+        self.last_ibtracs_update = global_vars.get("last_ibtracs_update")
+        self.is_best_track_updating = False
 
     def cog_unload(self):
         logging.info("Stopping monitor...")
@@ -148,6 +157,40 @@ class monitor(commands.Cog):
                 if channel_id is not None:
                     channel = bot.get_channel(channel_id)
                     await channel.send(f"CycloMonitor encountered an error while updating. This incident has been reported to the bot owner.")
+
+    @tasks.loop(time=datetime.time(0, 0, tzinfo=datetime.UTC))
+    async def daily_ibtracs_update(self, *, _force_full=False):
+        self.is_best_track_updating = True
+        now = datetime.datetime.now(datetime.UTC)
+        logging.info("Begin daily IBTrACS update.")
+        if (now.month == 1 and now.day == 1) or _force_full:
+            ibtracs.update_db("full")
+        else:
+            ibtracs.update_db("last3")
+        global_vars.write("last_ibtracs_update", math.floor(time.time()))
+        self.is_best_track_updating = False
+
+    @daily_ibtracs_update.error
+    async def on_ibtracs_update_error(self, error):
+        logging.error("Failed to update IBTrACS data. Trying again in 10 seconds...")
+        await asyncio.sleep(10)
+        for i in range(4):
+            try:
+                logging.info(f"Attempt {i + 2}...")
+                await self.daily_ibtracs_update()
+            except Exception as e:
+                logging.error(f"Attempt {i + 2} failed.")
+                if i == 3:
+                    logging.exception("Failed to get IBTrACS data after 5 attempts.")
+                    self.is_best_track_updating = False
+                    raise e from error
+                else:
+                    logging.error(f"Trying again in {10 * (i + 2)} seconds...")
+                    await asyncio.sleep(10 * (i + 2))
+                    continue
+            else:
+                break
+        self.is_best_track_updating = False
 
 
 # this function needs to be a coroutine since other coroutines are called
@@ -308,16 +351,22 @@ async def on_ready():
     global_vars.write("guild_count", len(bot.guilds))
     global cog
     # stop the monitor if it is already running
-    # this is to prevent a situation where there are two instances of the task running in some edge cases
+    # this is to prevent a situation where there are two instances of a task running in some edge cases
     try:
         cog.auto_update.cancel()
+        cog.daily_ibtracs_update().cancel()
     except NameError:
         cog = monitor(bot)
     if cog.auto_update.next_iteration is None:
         cog.auto_update.start()
+    if cog.daily_ibtracs_update.next_iteration is None:
+        cog.daily_ibtracs_update.start()
     # force an automatic update if last_update is not set or more than 6 hours have passed since the last update
     if (cog.last_update is None) or (math.floor(time.time()) - cog.last_update > 21600):
         await cog.auto_update()
+    # same idea as above but for IBTrACS data, and the limit is 24 hours
+    if (cog.last_ibtracs_update is None) or (math.floor(time.time()) - cog.last_ibtracs_update > 86400):
+        await cog.daily_ibtracs_update()
 
 
 @bot.event
@@ -676,4 +725,80 @@ async def feedback(
     else:
         await ctx.respond("I cannot find the bot owner.")
 
-bot.run(token)
+
+@bot.slash_command(name="get_past_storm", description="Get a storm from the best track database.")
+async def get_past_storm(
+    ctx: discord.ApplicationContext,
+    name: Option(str, "Search by name", default=None),
+    season: Option(int, "Search by year (since 1841)", min_value=1841, default=0),
+    basin: Option(str, "Search by basin", choices=["NA", "SA", "EP", "WP", "SP", "NI", "SI"], default=None),
+    atcf_id: Option(str, "Search by ATCF ID", default=None),
+    ibtracs_id: Option(str, "Search by IBTrACS ID", default=None),
+    table: Option(str, "Prefer table", choices=["LastThreeYears", "AllBestTrack"], default="LastThreeYears")
+):
+    await ctx.defer(ephemeral=True)
+    if cog.is_best_track_updating:
+        await ctx.respond("Hang on... I'm currently getting best track data...")
+        response = await ctx.interaction.original_response()
+        while cog.is_best_track_updating:
+            await asyncio.sleep(0.25)
+        await response.edit_message(content="Searching...")
+    else:
+        await ctx.respond("Searching...")
+        response = await ctx.interaction.original_response()
+    try:
+        results = ibtracs.get_storm(
+            name=name,
+            season=season,
+            basin=basin,
+            atcf_id=atcf_id,
+            ibtracs_id=ibtracs_id,
+            table=table
+        )
+    except ValueError as e:
+        await response.edit(f"Error: {e}")
+        return
+    if isinstance(results, GeneratorType):
+        res_tmp = StringIO()
+        res_tmp.write("Multiple storms found. Try narrowing your search down.\n")
+        lines = [f"{s}\n" for s in results]
+        res_tmp.writelines(lines)
+        await response.edit(res_tmp.getvalue())
+        res_tmp.close()
+    elif isinstance(results, ibtracs.Storm):
+        peak_timestamp = int(datetime.datetime.fromisoformat(results.time_of_peak).replace(tzinfo=datetime.UTC).timestamp())
+        nature = results.nature().title()
+        name = results.name.title()
+        if not results.peak_winds:
+            peak_winds = "Unknown"
+            peak_time = "Unknown"
+        else:
+            peak_winds = f"{results.peak_winds} kt"
+            peak_time = f"<t:{peak_timestamp}:f>"
+        if not results.peak_pres:
+            peak_pres = "Unknown"
+        else:
+            peak_pres = f"{results.peak_pres} mb"
+        if results.atcf_id is None:
+            atcf_id = "Unknown"
+        else:
+            atcf_id = results.atcf_id
+        await response.edit(content=f"# {nature} {name} ({results.season})\n\
+- Basin: {results.basin}\n\
+- Peak winds: {peak_winds}\n\
+- Peak pressure: {peak_pres}\n\
+- Time of peak: {peak_time}\n\
+- ATCF ID: {atcf_id}\n\
+- IBTrACS ID: {results.best_track_id}\n\
+Note: if these data are inaccurate, please complain to the WMO, not me.")
+    elif results is None:
+        await response.edit(content="No results found. Please try again with different paramaters.")
+    else:
+        # you should never see this error ;-)
+        raise TypeError(f"What the fuck is this? {type(results)}")
+
+# we don't want to expose the bot's token if this script is imported
+if __name__ == "__main__":
+    with open('TOKEN', 'r') as f:
+        _token = f.read().split()[0] # split in case of any newlines or spaces
+    bot.run(_token)
