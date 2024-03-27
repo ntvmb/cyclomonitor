@@ -215,7 +215,10 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
     if isinstance(basin, str):
         if basin.upper() not in ["NA", "SA", "NI", "SI", "SP", "EP", "WP"]:
             raise ValueError(f"Invalid basin: {basin}")
+    if not isinstance(season, int):
+        raise TypeError("season must be an integer")
     if name is not None:
+        name = name.replace("'", "''") # sanitization
         conds_buff.write(f"NAME = '{name.upper()}'")
         num_conds += 1
     if season:
@@ -229,11 +232,13 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
         conds_buff.write(f"BASIN = '{basin.upper()}'")
         num_conds += 1
     if atcf_id is not None:
+        atcf_id = atcf_id.replace("'", "''")
         if num_conds:
             conds_buff.write(" AND ")
         conds_buff.write(f"USA_ATCF_ID = '{atcf_id.upper()}'")
         num_conds += 1
     if ibtracs_id is not None:
+        ibtracs_id = ibtracs_id.replace("'", "''")
         if num_conds:
             conds_buff.write(" AND ")
         conds_buff.write(f"SID = '{ibtracs_id.upper()}'")
