@@ -292,29 +292,29 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
         data = res.fetchall()
         if not data:
             return None
-    storms = set(data) # Deduplicate data
+    storms = sorted(set(data)) # Deduplicate and sort data
+    sid = storms[0][0]
     if len(storms) > 1:
-        con.close()
-        return query_group(storms)
-    else:
-        storms = list(storms)
-        sid = storms[0][0]
-        res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(USA_WIND), USA_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = '{sid}' AND USA_WIND != ' ' AND NATURE != 'ET'")
+        for storm in storms:
+            if sid not in storm:
+                con.close()
+                return query_group(storms)
+    res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(USA_WIND), USA_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = '{sid}' AND USA_WIND != ' ' AND NATURE != 'ET'")
+    atcf_id, basin, wind, pres, time, name, season = res.fetchone()
+    if pres == " ":
+        res = cur.execute(f"SELECT WMO_PRES FROM {table} WHERE SID = '{sid}' and ISO_TIME = '{time}'")
+        pres = res.fetchone()[0]
+    if name is None:
+        res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(WMO_WIND), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = '{sid}' AND WMO_WIND != ' '")
         atcf_id, basin, wind, pres, time, name, season = res.fetchone()
-        if pres == " ":
-            res = cur.execute(f"SELECT WMO_PRES FROM {table} WHERE SID = '{sid}' and ISO_TIME = '{time}'")
-            pres = res.fetchone()[0]
         if name is None:
-            res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(WMO_WIND), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = '{sid}' AND WMO_WIND != ' '")
-            atcf_id, basin, wind, pres, time, name, season = res.fetchone()
-            if name is None:
-                res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(USA_SSHS), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = '{sid}'")
-                atcf_id, basin, sshs, pres, time, name, season = res.fetchone()
-                wind = 0
-        if pres == " ":
-            pres = 0
-        if atcf_id == " ":
-            atcf_id = None
+            res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(USA_SSHS), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = '{sid}'")
+            atcf_id, basin, sshs, pres, time, name, season = res.fetchone()
+            wind = 0
+    if pres == " ":
+        pres = 0
+    if atcf_id == " ":
+        atcf_id = None
     con.close()
     return Storm(atcf_id, basin, wind, pres, time, name, sid, season)
 
