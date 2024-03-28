@@ -89,11 +89,14 @@ class Storm:
         con = sqlite3.connect(DB)
         cur = con.cursor()
         if self.best_track_id:
-            conds = f"SID = '{self.best_track_id}' AND NATURE != 'ET' AND (WMO_WIND = {self.peak_winds} OR USA_WIND = {self.peak_winds})"
+            params = [self.best_track_id, self.peak_winds, self.peak_winds]
+            conds = f"SID = ? AND NATURE != 'ET' AND (WMO_WIND = ? OR USA_WIND = ?)"
         else:
-            conds = f"NAME = '{self.name}' AND SEASON = {self.season} AND BASIN = '{self.basin}' AND NATURE != 'ET' AND (WMO_WIND = {self.peak_winds} OR USA_WIND = {self.peak_winds})"
-        res = cur.execute(f"SELECT NATURE FROM {table} WHERE {conds}")
+            params = [self.name, self.season, self.basin, self.peak_winds, self.peak_winds]
+            conds = f"NAME = ? AND SEASON = ? AND BASIN = ? AND NATURE != 'ET' AND (WMO_WIND = ? OR USA_WIND = ?)"
+        res = cur.execute(f"SELECT NATURE FROM {table} WHERE {conds}", params)
         natures = res.fetchall()
+        con.close()
         if natures:
             if (("SS",) in natures or ("DS",) in natures) and ("TS",) not in natures:
                 return True
@@ -243,39 +246,36 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
     if table is not None and table not in ["LastThreeYears", "AllBestTrack"]:
         raise ValueError(f"Invalid table: {table}")
     conds_buff = io.StringIO()
-    num_conds = 0
+    params = []
     if isinstance(basin, str):
         if basin.upper() not in ["NA", "SA", "NI", "SI", "SP", "EP", "WP"]:
             raise ValueError(f"Invalid basin: {basin}")
     if not isinstance(season, int):
         raise TypeError("season must be an integer")
     if name is not None:
-        name = name.replace("'", "''") # sanitization
-        conds_buff.write(f"NAME = '{name.upper()}'")
-        num_conds += 1
+        params.append(name.upper())
+        conds_buff.write("NAME = ?")
     if season:
-        if num_conds:
+        if params:
             conds_buff.write(" AND ")
-        conds_buff.write(f"SEASON = {season}")
-        num_conds += 1
+        params.append(season)
+        conds_buff.write("SEASON = ?")
     if basin is not None:
-        if num_conds:
+        if params:
             conds_buff.write(" AND ")
-        conds_buff.write(f"BASIN = '{basin.upper()}'")
-        num_conds += 1
+        params.append(basin.upper())
+        conds_buff.write(f"BASIN = ?")
     if atcf_id is not None:
-        atcf_id = atcf_id.replace("'", "''")
-        if num_conds:
+        if params:
             conds_buff.write(" AND ")
-        conds_buff.write(f"USA_ATCF_ID = '{atcf_id.upper()}'")
-        num_conds += 1
+        params.append(atcf_id.upper())
+        conds_buff.write(f"USA_ATCF_ID = ?")
     if ibtracs_id is not None:
-        ibtracs_id = ibtracs_id.replace("'", "''")
-        if num_conds:
+        if params:
             conds_buff.write(" AND ")
-        conds_buff.write(f"SID = '{ibtracs_id.upper()}'")
-        num_conds += 1
-    if not num_conds:
+        params.append(ibtracs_id.upper())
+        conds_buff.write(f"SID = ?")
+    if not params:
         raise ValueError("Please specify at least one of name, season, basin, atcf_id, or ibtracs_id.")
     conds = conds_buff.getvalue()
     conds_buff.close()
@@ -284,11 +284,11 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
     if table is None:
         table = "LastThreeYears"
     log.debug(f"Conditions: {conds}")
-    res = cur.execute(f"SELECT SID, SEASON, BASIN, NAME FROM {table} WHERE {conds}")
+    res = cur.execute(f"SELECT SID, SEASON, BASIN, NAME FROM {table} WHERE {conds}", params)
     data = res.fetchall()
     if not data:
         table = "AllBestTrack"
-        res = cur.execute(f"SELECT SID, SEASON, BASIN, NAME FROM AllBestTrack WHERE {conds}")
+        res = cur.execute(f"SELECT SID, SEASON, BASIN, NAME FROM AllBestTrack WHERE {conds}", params)
         data = res.fetchall()
         if not data:
             return None
@@ -299,16 +299,19 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
             if sid not in storm:
                 con.close()
                 return query_group(storms)
-    res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(USA_WIND), USA_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = '{sid}' AND USA_WIND != ' ' AND NATURE != 'ET'")
+    params = [sid]
+    res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(USA_WIND), USA_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = ? AND USA_WIND != ' ' AND NATURE != 'ET'", params)
     atcf_id, basin, wind, pres, time, name, season = res.fetchone()
     if pres == " ":
-        res = cur.execute(f"SELECT WMO_PRES FROM {table} WHERE SID = '{sid}' and ISO_TIME = '{time}'")
+        params = [sid, time]
+        res = cur.execute(f"SELECT WMO_PRES FROM {table} WHERE SID = ? and ISO_TIME = ?", params)
         pres = res.fetchone()[0]
     if name is None:
-        res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(WMO_WIND), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = '{sid}' AND WMO_WIND != ' '")
+        params = [sid]
+        res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(WMO_WIND), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = ? AND WMO_WIND != ' '", params)
         atcf_id, basin, wind, pres, time, name, season = res.fetchone()
         if name is None:
-            res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(USA_SSHS), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = '{sid}'")
+            res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(USA_SSHS), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = params")
             atcf_id, basin, sshs, pres, time, name, season = res.fetchone()
             wind = 0
     if pres == " ":
