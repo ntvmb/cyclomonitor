@@ -769,6 +769,10 @@ async def get_past_storm(
         peak_timestamp = int(datetime.datetime.fromisoformat(results.time_of_peak).replace(tzinfo=datetime.UTC).timestamp())
         nature = results.nature().title()
         name = results.name.title()
+        if name == "Not_Named":
+            descriptor = f"Unnamed {nature}"
+        else:
+            descriptor = f"{nature} {name}"
         if not results.peak_winds:
             peak_winds = "Unknown"
             peak_time = "Unknown"
@@ -783,7 +787,7 @@ async def get_past_storm(
             atcf_id = "Unknown"
         else:
             atcf_id = results.atcf_id
-        await response.edit(content=f"# {nature} {name} ({results.season})\n\
+        await response.edit(content=f"# {descriptor} ({results.season})\n\
 - Basin: {results.basin}\n\
 - Peak winds: {peak_winds}\n\
 - Peak pressure: {peak_pres}\n\

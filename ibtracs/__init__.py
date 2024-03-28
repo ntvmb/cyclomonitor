@@ -43,6 +43,7 @@ class Storm:
     season -- the year the storm formed in
     Methods:
     nature() -- cyclonic nature at peak
+    is_subtropical()
     """
     atcf_id: str
     basin: str
@@ -55,11 +56,18 @@ class Storm:
 
     def nature(self) -> str:
         """Based on peak winds, return a string."""
+        subtropical = self.is_subtropical()
         if self.peak_winds:
             if self.peak_winds < 34:
-                return "TROPICAL DEPRESSION"
+                if subtropical:
+                    return "SUBTROPICAL DEPRESSION"
+                else:
+                    return "TROPICAL DEPRESSION"
             if self.peak_winds < 64:
-                return "TROPICAL STORM"
+                if subtropical:
+                    return "SUBTROPICAL STORM"
+                else:
+                    return "TROPICAL STORM"
             if self.basin == "WP":
                 if self.peak_winds < 130:
                     return "TYPHOON"
@@ -67,8 +75,32 @@ class Storm:
                     return "SUPER TYPHOON"
             if self.basin == "NA" or self.basin == "SA" or self.basin == "EP":
                 return "HURRICANE"
+        if subtropical:
+            return "SUBTROPICAL CYCLONE"
         # this value does double-duty as a generic term and the term for hurricane-strength storms in basins not listed above
         return "TROPICAL CYCLONE"
+
+    def is_subtropical(self, *, table="LastThreeYears"):
+        if not self.peak_winds:
+            return False
+        for v in self.__dict__.values():
+            if isinstance(v, str) and ("'" in v or ";" in v):
+                return False
+        con = sqlite3.connect(DB)
+        cur = con.cursor()
+        if self.best_track_id:
+            conds = f"SID = '{self.best_track_id}' AND NATURE != 'ET' AND (WMO_WIND = {self.peak_winds} OR USA_WIND = {self.peak_winds})"
+        else:
+            conds = f"NAME = '{self.name}' AND SEASON = {self.season} AND BASIN = '{self.basin}' AND NATURE != 'ET' AND (WMO_WIND = {self.peak_winds} OR USA_WIND = {self.peak_winds})"
+        res = cur.execute(f"SELECT NATURE FROM {table} WHERE {conds}")
+        natures = res.fetchall()
+        if natures:
+            if (("SS",) in natures or ("DS",) in natures) and ("TS",) not in natures:
+                return True
+        else:
+            if not natures and table == "LastThreeYears":
+                return self.is_subtropical(table="AllBestTrack")
+        return False
 
 
 @dataclass(frozen=True, repr=False)
@@ -267,7 +299,7 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
     else:
         storms = list(storms)
         sid = storms[0][0]
-        res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(USA_WIND), USA_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = '{sid}' AND USA_WIND != ' '")
+        res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(USA_WIND), USA_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = '{sid}' AND USA_WIND != ' ' AND NATURE != 'ET'")
         atcf_id, basin, wind, pres, time, name, season = res.fetchone()
         if pres == " ":
             res = cur.execute(f"SELECT WMO_PRES FROM {table} WHERE SID = '{sid}' and ISO_TIME = '{time}'")
