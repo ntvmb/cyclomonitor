@@ -128,7 +128,7 @@ class monitor(commands.Cog):
                     if channel_id is not None:
                         channel = bot.get_channel(channel_id)
                         await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- ATCF is down\n- All active systems dissipated recently\n- A manual update was called recently")
-                        await channel.send(f"Next automatic update: <t:{cog.auto_update.next_iteration.timestamp()}:f>")
+                        await channel.send(f"Next automatic update: <t:{math.floor(cog.auto_update.next_iteration.timestamp())}:f>")
                 return
         self.last_update = math.floor(time.time())
         global_vars.write("last_update", self.last_update)
