@@ -355,6 +355,7 @@ async def on_ready():
     try:
         cog.auto_update.cancel()
         cog.daily_ibtracs_update().cancel()
+        await asyncio.sleep(1)
     except NameError:
         cog = monitor(bot)
     if cog.auto_update.next_iteration is None:
