@@ -18,6 +18,7 @@ import requests
 import json
 import logging
 from itertools import zip_longest
+from locales import *
 
 # initalize variables
 url = "https://www.nrlmry.navy.mil/tcdat/sectors/atcf_sector_file"
@@ -83,13 +84,13 @@ def parse_storm(line: str, *, mode="std"):
     If mode is "interp", parse extra data provided in ATCF's
     interp_sector_file.
     """
-    log.debug(f"Parsing line {line} in mode {mode}")
+    log.debug(ATCF_PARSE_STORM.format(line, mode))
     storm = line.split()
     try:
         if mode == "interp":
-            assert len(storm) == 12, f"Expected 12 columns for mode interp, got {len(storm)}."
+            assert len(storm) == 12, ATCF_ERROR_COL.format(12, mode, len(storm))
         else:
-            assert len(storm) == 9, f"Expected 9 columns for mode std, got {len(storm)}."
+            assert len(storm) == 9, ATCF_ERROR_COL.format(9, mode, len(storm))
         if not mode == "interp":
             cyclones.append(storm[0])
             names.append(storm[1])
@@ -146,8 +147,8 @@ def parse_storm(line: str, *, mode="std"):
                     if md is not None:
                         movement_dirs.remove(md)
 
-        log.exception(f"Entry {line} is formatted incorrectly. It will not be counted.")
-        raise WrongData(f"Entry {line} is formatted incorrectly.") from e
+        log.exception(ATCF_WRONG_DATA.format(line))
+        raise WrongData(ATCF_WRONG_DATA.format(line)) from e
 
 
 def load():
@@ -160,7 +161,7 @@ def load():
                 except WrongData:
                     continue
     except FileNotFoundError:
-        log.info("No cached data found.")
+        log.info(ATCF_NO_DATA)
         return
 
     try:
@@ -180,9 +181,9 @@ def load():
                         movement_dirs.append(float(storm[11]))
                         break
                 else: # no break
-                    raise ATCFError("How did you get here?")
+                    raise ATCFError(ERROR_HDYGH)
     except Exception as e:
-        raise ATCFError("Failure to get interp data") from e
+        raise ATCFError(ATCF_GET_INTERP_FAILED) from e
 
 
 # load cached data upon bringing in the module
@@ -194,14 +195,14 @@ def get_data():
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures
     global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
     reset()
-    log.info("Using main ATCF source.")
+    log.info(ATCF_USING_MAIN)
     try:
         ra = requests.get(url, verify=False, timeout=15)
         ra.raise_for_status()
         ri = requests.get(url_interp, verify=False, timeout=15)
         ri.raise_for_status()
     except requests.RequestException as e:
-        log.warning(f"Getting data from main source failed: {e}.")
+        log.warning(ATCF_USING_MAIN_FAILED.format(e))
         get_data_alt()
         return
     with open('atcf_sector_file', 'wb') as f:
@@ -219,14 +220,14 @@ def get_data_alt():
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures
     global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
     reset()
-    log.info("Using alternate ATCF source.")
+    log.info(ATCF_USING_ALT)
     try:
         r = requests.get(url_alt, verify=False, timeout=15)
         r.raise_for_status()
     except requests.Timeout as e:
-        raise ATCFError("Request timed out.") from e
+        raise ATCFError(ERROR_TIMED_OUT) from e
     except requests.RequestException as exc:
-        raise ATCFError("Failed to get ATCF data.") from exc
+        raise ATCFError(ERROR_ATCF_GET_DATA_FAILED) from exc
     with open('atcf_sector_file.tmp', 'wb') as f:
         f.write(r.content)
     with open('atcf_sector_file.tmp', 'r') as f:

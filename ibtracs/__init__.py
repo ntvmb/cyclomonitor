@@ -20,12 +20,14 @@ import subprocess
 import io
 from dataclasses import dataclass
 from collections.abc import Iterable
+from .locales import *
+
 log = logging.getLogger(__name__)
 PATH = os.path.dirname(os.path.realpath(__file__))
 DB = f"{PATH}/BestTrack.db"
 base_uri = "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r00/access/csv"
 if not os.path.exists(DB):
-    log.info("Best track database not found.")
+    log.info(IBTRACS_DB_NOT_FOUND)
 
 
 @dataclass(frozen=True)
@@ -60,25 +62,25 @@ class Storm:
         if self.peak_winds:
             if self.peak_winds < 34:
                 if subtropical:
-                    return "SUBTROPICAL DEPRESSION"
+                    return CLASS_SD
                 else:
-                    return "TROPICAL DEPRESSION"
+                    return CLASS_TD
             if self.peak_winds < 64:
                 if subtropical:
-                    return "SUBTROPICAL STORM"
+                    return CLASS_SS
                 else:
-                    return "TROPICAL STORM"
+                    return CLASS_TS
             if self.basin == "WP":
                 if self.peak_winds < 130:
-                    return "TYPHOON"
+                    return CLASS_TY
                 else:
-                    return "SUPER TYPHOON"
+                    return CLASS_STY
             if self.basin == "NA" or self.basin == "SA" or self.basin == "EP":
-                return "HURRICANE"
+                return CLASS_HU
         if subtropical:
-            return "SUBTROPICAL CYCLONE"
+            return CLASS_STC
         # this value does double-duty as a generic term and the term for hurricane-strength storms in basins not listed above
-        return "TROPICAL CYCLONE"
+        return CLASS_TC
 
     def is_subtropical(self, *, table="LastThreeYears"):
         if not self.peak_winds:
@@ -122,7 +124,7 @@ class Query:
     name: str
 
     def __repr__(self):
-        return f"{self.name} ({self.season}) from {self.basin} (IBTrACS ID: {self.sid})"
+        return QUERY_REPR.format(self=self)
 
 
 def query_group(queries: Iterable[tuple[str, int, str, str]]):
@@ -166,17 +168,18 @@ def update_db(mode="last3"):
     If mode == "all", update the table AllBestTrack.
     If mode == "full", update both tables.
     """
+    locale_init()
     get_last3 = mode == "last3" or mode == "full"
     get_all = mode == "all" or mode == "full"
     if not (get_last3 or get_all):
-        raise ValueError(f"Illegal mode: {mode}\nValid options are: last3, all, full")
+        raise ValueError(ERROR_ILLEGAL_UPDATE_MODE.format(mode))
     if mode == "last3":
-        log.info("Performing update in mode last3.")
+        log.info(IBTRACS_UPDATE_LAST3)
     elif mode == "all":
-        log.info("Performing update in mode all.")
+        log.info(IBTRACS_UPDATE_ALL)
     else:
-        log.info("Performing full update.")
-    log.info("Getting IBTrACS data (this may take a while)...")
+        log.info(IBTRACS_UPDATE_FULL)
+    log.info(IBTRACS_GETTING_DATA)
     if get_last3:
         csv = "ibtracs_last3.csv"
         r = requests.get(f"{base_uri}/ibtracs.last3years.list.v04r00.csv",
@@ -186,7 +189,7 @@ def update_db(mode="last3"):
             with open(f"{PATH}/{csv}", "wb") as f:
                 f.write(r.content)
         except Exception:
-            log.exception("Error getting or writing IBTrACS data")
+            log.exception(ERROR_IBTRACS_UPDATE_FAILURE)
             raise
         finally:
             # Calling close does not delete the object.
@@ -207,7 +210,7 @@ def update_db(mode="last3"):
             with open(f"{PATH}/{csv}", "wb") as f:
                 f.write(r.content)
         except Exception:
-            log.exception("Error getting or writing IBTrACS data")
+            log.exception(ERROR_IBTRACS_UPDATE_FAILURE)
             raise
         finally:
             del r
@@ -224,7 +227,7 @@ def init_db():
     update_db("full")
 
 
-def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_id=None, table=None):
+def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_id=None, table=None, lang="C"):
     """Find a TC and return either a query_group() or a Storm().
 
     If only one storm is found, return a Storm() object.
@@ -241,17 +244,18 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
     At least one of the above keyword arguments (except for table) must be
     specified by the user.
     """
+    set_locale(lang)
     if not os.path.exists(DB):
-        raise FileNotFoundError("Best track database not found. Please call this module's init_db() function.")
+        raise FileNotFoundError(ERROR_MISSING_IBTRACS_DB)
     if table is not None and table not in ["LastThreeYears", "AllBestTrack"]:
-        raise ValueError(f"Invalid table: {table}")
+        raise ValueError(ERROR_INVALID_TABLE.format(table))
     conds_buff = io.StringIO()
     params = []
     if isinstance(basin, str):
         if basin.upper() not in ["NA", "SA", "NI", "SI", "SP", "EP", "WP"]:
-            raise ValueError(f"Invalid basin: {basin}")
+            raise ValueError(ERROR_INVALID_BASIN.format(basin))
     if not isinstance(season, int):
-        raise TypeError("season must be an integer")
+        raise TypeError(ERROR_INVALID_SEASON)
     if name is not None:
         params.append(name.upper())
         conds_buff.write("NAME = ?")
@@ -276,14 +280,14 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
         params.append(ibtracs_id.upper())
         conds_buff.write(f"SID = ?")
     if not params:
-        raise ValueError("Please specify at least one of name, season, basin, atcf_id, or ibtracs_id.")
+        raise ValueError(ERROR_NO_PARAMS)
     conds = conds_buff.getvalue()
     conds_buff.close()
     con = sqlite3.connect(DB)
     cur = con.cursor()
     if table is None:
         table = "LastThreeYears"
-    log.debug(f"Conditions: {conds}")
+    log.debug(IBTRACS_CONDS.format(conds))
     res = cur.execute(f"SELECT SID, SEASON, BASIN, NAME FROM {table} WHERE {conds}", params)
     data = res.fetchall()
     if not data:

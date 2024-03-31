@@ -401,7 +401,7 @@ async def on_guild_remove(guild: discord.Guild):
 
 @bot.event
 async def on_application_command(ctx: discord.ApplicationContext):
-    server_lang = server_vars.get("lang", ctx.guild.id)
+    server_lang = server_vars.get("lang", ctx.guild_id)
     if server_lang is not None:
         set_locale(server_lang)
     else:
@@ -754,7 +754,8 @@ async def get_past_storm(
             basin=basin,
             atcf_id=atcf_id,
             ibtracs_id=ibtracs_id,
-            table=table
+            table=table,
+            lang=server_vars.get("lang", ctx.guild_id)
         )
     except ValueError as e:
         await response.edit(CM_ERROR.format(e))

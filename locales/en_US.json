@@ -137,5 +137,16 @@
     "ERROR_WTF": "What the fuck is this? {0}",
     "CM_SET_LANGUAGE": "Set the language for this server.",
     "CM_LANG_TO_USE": "The language to use.",
-    "CM_SET_LANGUAGE_SUCCESS": "Set the language to {0}."
+    "CM_SET_LANGUAGE_SUCCESS": "Set the language to {0}.",
+    "ATCF_PARSE_STORM": "Parsing line {0} in mode {1}",
+    "ATCF_ERROR_COL": "Expected {0} columns for mode {1}, got {2}}.",
+    "ATCF_WRONG_DATA": "Entry {0} is formatted incorrectly. It will not be counted.",
+    "ATCF_NO_DATA": "No cached data found.",
+    "ERROR_HDYGH": "How did you get here?",
+    "ATCF_GET_INTERP_FAILED": "Failure to get interp data",
+    "ATCF_USING_MAIN": "Using main ATCF source.",
+    "ATCF_USING_MAIN_FAILED": "Getting data from main source failed: {0}.",
+    "ATCF_USING_ALT": "Using alternate ATCF source.",
+    "ERROR_TIMED_OUT": "Request timed out.",
+    "ERROR_ATCF_GET_DATA_FAILED": "Failed to get ATCF data."
 }
