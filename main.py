@@ -113,6 +113,8 @@ class monitor(commands.Cog):
         except atcf.ATCFError as e:
             logging.exception("Failed to get ATCF data. Aborting update.")
             return
+        self.last_update = math.floor(time.time())
+        global_vars.write("last_update", self.last_update)
         if self.should_suppress(prev_timestamps):
             # try alternate source
             logging.warn("Suppression from main source called. Trying fallback source...")
@@ -130,8 +132,6 @@ class monitor(commands.Cog):
                         await channel.send("Automatic update suppressed. This could be because of one of the following:\n- ATCF is taking longer to update than expected\n- ATCF is down\n- All active systems dissipated recently\n- A manual update was called recently")
                         await channel.send(f"Next automatic update: <t:{math.floor(cog.auto_update.next_iteration.timestamp())}:f>")
                 return
-        self.last_update = math.floor(time.time())
-        global_vars.write("last_update", self.last_update)
         for guild in bot.guilds:
             channel_id = server_vars.get("tracking_channel", guild.id)
             if channel_id is not None:
