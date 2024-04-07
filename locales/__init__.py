@@ -162,12 +162,14 @@ _PATH = os.path.dirname(os.path.realpath(__file__))
 
 
 def set_locale(lang="C"):
+    """Set the locale to :mod:`lang`. Returns the language that was set."""
     json_file = pathlib.Path(f"{_PATH}/{lang}.json")
     try:
         with json_file.open() as f:
             lc = json.load(f)
     except OSError:
-        _log.exception(f"Locale {lang} not found. Falling back to default locale (C).")
+        _log.exception(
+            f"Locale {lang} not found. Falling back to default locale (C).")
         lang = "C"
         with open(f"{_PATH}/C.json") as f:
             lc = json.load(f)

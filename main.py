@@ -44,7 +44,7 @@ logging.basicConfig(filename=logname,
                     format='%(asctime)s.%(msecs)d %(name)s %(levelname)s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO)
-# PLEASE CHANGE THESE LINK IF YOU ARE FORKING THIS PROJECT.
+# PLEASE CHANGE THESE LINKS IF YOU ARE FORKING THIS PROJECT.
 INVITE = "https://discord.com/api/oauth2/authorize?client_id=1107462705004167230&permissions=67496000&scope=bot"
 GITHUB = "https://github.com/ntvmb/cyclomonitor"
 languages = ["C", "en_US"]
@@ -55,7 +55,8 @@ except ModuleNotFoundError:
     logging.warning(LOG_TENDO_NOT_FOUND)
 
 try:
-    me = singleton.SingleInstance() # Prevent more than one instance from running at once
+    # Prevent more than one instance from running at once
+    me = singleton.SingleInstance()
 except singleton.SingleInstanceException:
     print(ERROR_ALREADY_RUNNING)
     exit(1)
@@ -90,12 +91,12 @@ class monitor(commands.Cog):
     def should_suppress(self, prev_timestamps: list):
         """Compare two lists of timestamps and return a boolean."""
         suppressed = []
-        for index, (cyclone, timestamp) in enumerate(zip(
-            atcf.cyclones, atcf.timestamps
+        for index, (cyclone, timestamp, p_timestamp) in enumerate(zip(
+            atcf.cyclones, atcf.timestamps, prev_timestamps
         )):
             try:
                 # will this system request for a suppression?
-                suppressed.append(prev_timestamps[index] >= timestamp)
+                suppressed.append(p_timestamp >= timestamp)
             except IndexError:
                 suppressed.append(False)
             logging.debug(
@@ -112,10 +113,7 @@ class monitor(commands.Cog):
     @tasks.loop(time=times)
     async def auto_update(self):
         logging.info(LOG_AUTO_UPDATE_BEGIN)
-        try:
-            prev_timestamps = atcf.timestamps.copy()
-        except Exception:
-            prev_timestamps = []
+        prev_timestamps = atcf.timestamps.copy()
         try:
             atcf.get_data()
         except atcf.ATCFError as e:
@@ -208,7 +206,7 @@ async def update_guild(guild: int, to_channel: int):
     logging.info(LOG_UPDATE_GUILD.format(guild))
     channel = bot.get_channel(to_channel)
     enabled_basins = server_vars.get("basins", guild)
-    current_TC_record = global_vars.get("strongest_storm") # record-keeping
+    current_TC_record = global_vars.get("strongest_storm")  # record-keeping
     if enabled_basins is not None:
         sent_list = []
         for (
@@ -220,7 +218,8 @@ async def update_guild(guild: int, to_channel: int):
             atcf.tc_classes, atcf.lats_real, atcf.longs_real,
             atcf.movement_speeds, atcf.movement_dirs
         ):
-            mph = round(wind * KT_TO_MPH / 5) * 5 # per standard, we round to the nearest 5
+            # per standard, we round to the nearest 5
+            mph = round(wind * KT_TO_MPH / 5) * 5
             kmh = round(wind * KT_TO_KMH / 5) * 5
             c_dir = get_dir(movement_dir)
             if (not c_dir) or (movement_speed < 0):
@@ -228,7 +227,8 @@ async def update_guild(guild: int, to_channel: int):
             else:
                 movement_mph = movement_speed * KT_TO_MPH
                 movement_kph = movement_speed * KT_TO_KMH
-                movement_str = STORM_MOVEMENT.format(c_dir, movement_speed, movement_mph, movement_kph)
+                movement_str = STORM_MOVEMENT.format(
+                    c_dir, movement_speed, movement_mph, movement_kph)
             # accomodate for basin crossovers
             if lat_real > 0 and long_real > 30 and long_real < 97:
                 basin = "IO"
@@ -242,12 +242,12 @@ async def update_guild(guild: int, to_channel: int):
 
             if pressure == 0:
                 pressure = math.nan
-            '''
+            """
             Wind speeds are ignored when marking an invest.
             There is one exception, which is for subtropical cyclones, because not all agencies issue advisories/warnings on STCs (notably CPHC and JTWC).
             We can make an exception for STCs because ATCF doesn't autoflag them (more on that below).
             All wind speed values shown are in knots rounded to the nearest 5 (except for ones after > operators)
-            '''
+            """
             if name == "INVEST" and (not (tc_class == "SD" or tc_class == "SS")):
                 tc_class = CLASS_AOI
             if tc_class == "EX":
@@ -322,13 +322,16 @@ async def update_guild(guild: int, to_channel: int):
             if current_TC_record is not None:
                 if (wind > int(current_TC_record[5])) or (wind == int(current_TC_record[5]) and pressure < int(current_TC_record[8])):
                     logging.info(LOG_NEW_RECORD)
-                    global_vars.write("strongest_storm", [emoji, tc_class, cyc_id, name, str(timestamp), str(wind), str(mph), str(kmh), str(pressure)])
+                    global_vars.write("strongest_storm", [emoji, tc_class, cyc_id, name, str(
+                        timestamp), str(wind), str(mph), str(kmh), str(pressure)])
             else:
                 logging.info(LOG_NO_RECORD)
-                global_vars.write("strongest_storm", [emoji, tc_class, cyc_id, name, str(timestamp), str(wind), str(mph), str(kmh), str(pressure)])
+                global_vars.write("strongest_storm", [emoji, tc_class, cyc_id, name, str(
+                    timestamp), str(wind), str(mph), str(kmh), str(pressure)])
 
             # this check is really long since it needs to accomodate for every possible situation
-            send_message = (basin == "ATL" and enabled_basins[0] == "1") or (basin == "EPAC" and enabled_basins[1] == "1") or (basin == "CPAC" and enabled_basins[2] == "1") or (basin == "WPAC" and enabled_basins[3] == "1") or (basin == "IO" and enabled_basins[4] == "1") or (basin == "SHEM" and enabled_basins[5] == "1")
+            send_message = (basin == "ATL" and enabled_basins[0] == "1") or (basin == "EPAC" and enabled_basins[1] == "1") or (basin == "CPAC" and enabled_basins[2] == "1") or (
+                basin == "WPAC" and enabled_basins[3] == "1") or (basin == "IO" and enabled_basins[4] == "1") or (basin == "SHEM" and enabled_basins[5] == "1")
             sent_list.append(send_message)
             if math.isnan(pressure):
                 pressure = "N/A"
@@ -342,7 +345,7 @@ async def update_guild(guild: int, to_channel: int):
         for was_sent in sent_list:
             if was_sent:
                 break
-        else: # no break
+        else:  # no break
             await channel.send(CM_NO_STORMS)
         try:
             next_run = int(cog.auto_update.next_iteration.timestamp())
@@ -365,13 +368,16 @@ async def on_ready():
     try:
         cog.auto_update.cancel()
         cog.daily_ibtracs_update().cancel()
-        await asyncio.sleep(1)
     except NameError:
         cog = monitor(bot)
-    if cog.auto_update.next_iteration is None:
+
+    # keep trying to start the auto-update tasks until they have started
+    while cog.auto_update.next_iteration is None:
         cog.auto_update.start()
-    if cog.daily_ibtracs_update.next_iteration is None:
+        await asyncio.sleep(1)
+    while cog.daily_ibtracs_update.next_iteration is None:
         cog.daily_ibtracs_update.start()
+        await asyncio.sleep(1)
     # force an automatic update if last_update is not set or more than 6 hours have passed since the last update
     if (cog.last_update is None) or (math.floor(time.time()) - cog.last_update > 21600):
         await cog.auto_update()
@@ -502,7 +508,8 @@ async def set_basins(
     shem: Option(bool, CM_SHEM)
 ):
     await ctx.defer(ephemeral=True)
-    enabled_basins = f"{int(natl)}{int(epac)}{int(cpac)}{int(wpac)}{int(nio)}{int(shem)}" # this effectively represents a 6-bit binary value
+    # this effectively represents a 6-bit binary value
+    enabled_basins = f"{int(natl)}{int(epac)}{int(cpac)}{int(wpac)}{int(nio)}{int(shem)}"
     server_vars.write("basins", enabled_basins, ctx.guild_id)
     await ctx.respond(CM_BASINS_SAVED, ephemeral=True)
 
@@ -565,7 +572,8 @@ async def announce_basin(
         enabled_basins = server_vars.get("basins", guild.id)
         if channel_id is not None:
             channel = bot.get_channel(channel_id)
-            send_message = (basin == "natl" and enabled_basins[0] == "1") or (basin == "epac" and enabled_basins[1] == "1") or (basin == "cpac" and enabled_basins[2] == "1") or (basin == "wpac" and enabled_basins[3] == "1") or (basin == "nio" and enabled_basins[4] == "1") or (basin == "shem" and enabled_basins[5] == "1")
+            send_message = (basin == "natl" and enabled_basins[0] == "1") or (basin == "epac" and enabled_basins[1] == "1") or (basin == "cpac" and enabled_basins[2] == "1") or (
+                basin == "wpac" and enabled_basins[3] == "1") or (basin == "nio" and enabled_basins[4] == "1") or (basin == "shem" and enabled_basins[5] == "1")
             if send_message:
                 await channel.send(CM_BASIN_ANNOUNCEMENT.format(basin, announcement))
     await ctx.respond(CM_ANNOUNCE_BASIN_SUCCESS.format(basin, announcement), ephemeral=True)
@@ -735,7 +743,8 @@ async def get_past_storm(
     basin: Option(str, CM_PAST_STORM_BASIN, choices=["NA", "SA", "EP", "WP", "SP", "NI", "SI"], default=None),
     atcf_id: Option(str, CM_PAST_STORM_ATCF, default=None),
     ibtracs_id: Option(str, CM_PAST_STORM_SID, default=None),
-    table: Option(str, CM_PAST_STORM_TABLE, choices=["LastThreeYears", "AllBestTrack"], default="LastThreeYears")
+    table: Option(str, CM_PAST_STORM_TABLE, choices=[
+                  "LastThreeYears", "AllBestTrack"], default="LastThreeYears")
 ):
     await ctx.defer(ephemeral=True)
     if cog.is_best_track_updating:
@@ -768,7 +777,8 @@ async def get_past_storm(
         await response.edit(res_tmp.getvalue())
         res_tmp.close()
     elif isinstance(results, ibtracs.Storm):
-        peak_timestamp = int(datetime.datetime.fromisoformat(results.time_of_peak).replace(tzinfo=datetime.UTC).timestamp())
+        peak_timestamp = int(datetime.datetime.fromisoformat(
+            results.time_of_peak).replace(tzinfo=datetime.UTC).timestamp())
         nature = results.nature().title()
         name = results.name.title()
         if name == "Not_Named":
@@ -813,5 +823,5 @@ async def set_language(
 # we don't want to expose the bot's token if this script is imported
 if __name__ == "__main__":
     with open('TOKEN', 'r') as f:
-        _token = f.read().split()[0] # split in case of any newlines or spaces
+        _token = f.read().split()[0]  # split in case of any newlines or spaces
     bot.run(_token)

@@ -83,6 +83,7 @@ class Storm:
         return CLASS_TC
 
     def is_subtropical(self, *, table="LastThreeYears"):
+        """Determinte whether or not this TC was subtropical at peak."""
         if not self.peak_winds:
             return False
         for v in self.__dict__.values():
@@ -94,7 +95,8 @@ class Storm:
             params = [self.best_track_id, self.peak_winds, self.peak_winds]
             conds = f"SID = ? AND NATURE != 'ET' AND (WMO_WIND = ? OR USA_WIND = ?)"
         else:
-            params = [self.name, self.season, self.basin, self.peak_winds, self.peak_winds]
+            params = [self.name, self.season, self.basin,
+                      self.peak_winds, self.peak_winds]
             conds = f"NAME = ? AND SEASON = ? AND BASIN = ? AND NATURE != 'ET' AND (WMO_WIND = ? OR USA_WIND = ?)"
         res = cur.execute(f"SELECT NATURE FROM {table} WHERE {conds}", params)
         natures = res.fetchall()
@@ -131,7 +133,7 @@ def query_group(queries: Iterable[tuple[str, int, str, str]]):
     """Yield Query objects.
 
     Arguments:
-    queries -- an iterable consisting of tuples with length 4
+    queries -- an iterable consisting of tuples that have length 4
     """
     for sid, season, basin, name in queries:
         yield Query(sid, season, basin, name)
@@ -223,7 +225,7 @@ def update_db(mode="last3"):
 
 
 def init_db():
-    """Equivalent to update_db("full")"""
+    """Equivalent to :mod:`update_db("full")`"""
     update_db("full")
 
 
@@ -288,15 +290,17 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
     if table is None:
         table = "LastThreeYears"
     log.debug(IBTRACS_CONDS.format(conds))
-    res = cur.execute(f"SELECT SID, SEASON, BASIN, NAME FROM {table} WHERE {conds}", params)
+    res = cur.execute(
+        f"SELECT SID, SEASON, BASIN, NAME FROM {table} WHERE {conds}", params)
     data = res.fetchall()
     if not data:
         table = "AllBestTrack"
-        res = cur.execute(f"SELECT SID, SEASON, BASIN, NAME FROM AllBestTrack WHERE {conds}", params)
+        res = cur.execute(
+            f"SELECT SID, SEASON, BASIN, NAME FROM AllBestTrack WHERE {conds}", params)
         data = res.fetchall()
         if not data:
             return None
-    storms = sorted(set(data)) # Deduplicate and sort data
+    storms = sorted(set(data))  # Deduplicate and sort data
     sid = storms[0][0]
     if len(storms) > 1:
         for storm in storms:
@@ -304,18 +308,22 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
                 con.close()
                 return query_group(storms)
     params = [sid]
-    res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(USA_WIND), USA_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = ? AND USA_WIND != ' ' AND NATURE != 'ET'", params)
+    res = cur.execute(
+        f"SELECT USA_ATCF_ID, BASIN, MAX(USA_WIND), USA_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = ? AND USA_WIND != ' ' AND NATURE != 'ET'", params)
     atcf_id, basin, wind, pres, time, name, season = res.fetchone()
     if pres == " ":
         params = [sid, time]
-        res = cur.execute(f"SELECT WMO_PRES FROM {table} WHERE SID = ? and ISO_TIME = ?", params)
+        res = cur.execute(
+            f"SELECT WMO_PRES FROM {table} WHERE SID = ? and ISO_TIME = ?", params)
         pres = res.fetchone()[0]
     if name is None:
         params = [sid]
-        res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(WMO_WIND), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = ? AND WMO_WIND != ' '", params)
+        res = cur.execute(
+            f"SELECT USA_ATCF_ID, BASIN, MAX(WMO_WIND), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = ? AND WMO_WIND != ' '", params)
         atcf_id, basin, wind, pres, time, name, season = res.fetchone()
         if name is None:
-            res = cur.execute(f"SELECT USA_ATCF_ID, BASIN, MAX(USA_SSHS), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = params")
+            res = cur.execute(
+                f"SELECT USA_ATCF_ID, BASIN, MAX(USA_SSHS), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = params")
             atcf_id, basin, sshs, pres, time, name, season = res.fetchone()
             wind = 0
     if pres == " ":

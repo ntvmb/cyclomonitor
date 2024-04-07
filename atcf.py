@@ -88,7 +88,8 @@ def parse_storm(line: str, *, mode="std"):
     storm = line.split()
     try:
         if mode == "interp":
-            assert len(storm) == 12, ATCF_ERROR_COL.format(12, mode, len(storm))
+            assert len(storm) == 12, ATCF_ERROR_COL.format(
+                12, mode, len(storm))
         else:
             assert len(storm) == 9, ATCF_ERROR_COL.format(9, mode, len(storm))
         if not mode == "interp":
@@ -180,7 +181,7 @@ def load():
                         movement_speeds.append(float(storm[10]))
                         movement_dirs.append(float(storm[11]))
                         break
-                else: # no break
+                else:  # no break
                     raise ATCFError(ERROR_HDYGH)
     except Exception as e:
         raise ATCFError(ATCF_GET_INTERP_FAILED) from e

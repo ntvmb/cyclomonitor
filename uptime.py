@@ -17,15 +17,28 @@ def process_uptime_human_readable():
     minutes = math.floor((t_uptime % 3600) / 60)
     seconds = math.floor(t_uptime % 60)
     if days > 0:
-        p_days = str(days) + " days, "
+        if days == 1:
+            p_days = f"{days} day, "
+        else:
+            p_days = f"{days} days, "
     else:
         p_days = ""
     if hours > 0:
-        p_hours = str(hours) + " hours, "
+        if hours == 1:
+            p_hours = f"{hours} hour, "
+        else:
+            p_hours = f"{hours} hours, "
     else:
         p_hours = ""
     if minutes > 0:
-        p_minutes = str(minutes) + " minutes, "
+        if minutes == 1:
+            p_minutes = f"{minutes} minute, "
+        else:
+            p_minutes = f"{minutes} minutes, "
     else:
         p_minutes = ""
-    return p_days + p_hours + p_minutes + str(seconds) + " seconds"
+    if seconds == 1:
+        p_seconds = f"{seconds} second"
+    else:
+        p_seconds = f"{seconds} seconds"
+    return f"{p_days}{p_hours}{p_minutes}{p_seconds}"
