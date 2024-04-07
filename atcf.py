@@ -21,9 +21,11 @@ from itertools import zip_longest
 from locales import *
 
 # initalize variables
-url = "https://www.nrlmry.navy.mil/tcdat/sectors/atcf_sector_file"
-url_interp = "https://www.nrlmry.navy.mil/tcdat/sectors/interp_sector_file"
-url_alt = "https://api.knackwx.com/atcf/v2"
+URL = "https://www.nrlmry.navy.mil/tcdat/sectors/atcf_sector_file"
+URL_INTERP = "https://www.nrlmry.navy.mil/tcdat/sectors/interp_sector_file"
+URL_ALT = "https://api.knackwx.com/atcf/v2"
+BASE_URL_NHC = "https://www.nhc.noaa.gov/storm_graphics/{0}/{1}_5day_cone_with_line_and_wind.png"
+BASE_URL_JTWC = "https://www.metoc.navy.mil/jtwc/products/{0}.gif"
 cyclones = []
 names = []
 timestamps = []
@@ -47,6 +49,11 @@ class ATCFError(Exception):
 
 class WrongData(Exception):
     """An Exception for incorrectly formatted data."""
+    pass
+
+
+class NoActiveStorms(Exception):
+    """Used by get_forecast() to signal that no storms are active."""
     pass
 
 
@@ -198,9 +205,9 @@ def get_data():
     reset()
     log.info(ATCF_USING_MAIN)
     try:
-        ra = requests.get(url, verify=False, timeout=15)
+        ra = requests.get(URL, verify=False, timeout=15)
         ra.raise_for_status()
-        ri = requests.get(url_interp, verify=False, timeout=15)
+        ri = requests.get(URL_INTERP, verify=False, timeout=15)
         ri.raise_for_status()
     except requests.RequestException as e:
         log.warning(ATCF_USING_MAIN_FAILED.format(e))
@@ -223,7 +230,7 @@ def get_data_alt():
     reset()
     log.info(ATCF_USING_ALT)
     try:
-        r = requests.get(url_alt, verify=False, timeout=15)
+        r = requests.get(URL_ALT, verify=False, timeout=15)
         r.raise_for_status()
     except requests.Timeout as e:
         raise ATCFError(ERROR_TIMED_OUT) from e
@@ -234,7 +241,6 @@ def get_data_alt():
     with open('atcf_sector_file.tmp', 'r') as f:
         tc_list = json.load(f)
 
-    # for debugging
     with open('atcf_sector_file', 'w') as f:
         for d in tc_list:
             f.write(d['atcf_sector_file']+"\n")
@@ -249,6 +255,56 @@ def get_data_alt():
             parse_storm(d['interp_sector_file'], mode="interp")
         except WrongData:
             continue
+
+
+def get_forecast(*, name="", cid=""):
+    if not (cyclones and names):
+        raise NoActiveStorms()
+    if not (name or cid):
+        raise ValueError(ERROR_GET_FORECAST_NO_PARAMS)
+    if name:
+        name = name.upper()
+        try:
+            index = names.index(name)
+        except ValueError:
+            index = -1
+    else:
+        index = -1
+    if index == -1 or not name:
+        try:
+            index = cyclones.index(cid)
+        except ValueError:
+            return None
+
+    with open("interp_sector_file", "r") as f:
+        lines = f.readlines()
+        atcf_id = lines[index].split()[0].upper()
+
+    basin = atcf_id[:2]  # 2-char basin identifier
+    num = atcf_id[2:4]  # 2-digit storm number
+    jtwc_year = atcf_id[6:]  # Last 2 digits of the year
+    if basin == "AL":
+        nhc_basin = "AT"
+    elif basin == "EP" or basin == "CP":
+        nhc_basin = basin
+    else:
+        nhc_basin = None
+
+    if nhc_basin is not None:
+        nhc_id = f"{nhc_basin}{num}"
+        r = requests.get(BASE_URL_NHC.format(nhc_id, atcf_id), timeout=15)
+    else:
+        basin = basin.lower()
+        jtwc_id = f"{basin}{num}{jtwc_year}"
+        r = requests.get(BASE_URL_JTWC.format(jtwc_id), timeout=15)
+    r.raise_for_status()
+
+    # assuming everything is good, this will either be png or gif
+    ext = r.headers["Content-Type"].split("/")[1]
+
+    with open(f"forecast.{ext}", "wb") as img:
+        img.write(r.content)
+    return ext
 
 
 if __name__ == "__main__":

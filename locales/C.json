@@ -148,5 +148,8 @@
     "ATCF_USING_MAIN_FAILED": "Getting data from main source failed: {0}.",
     "ATCF_USING_ALT": "Using alternate ATCF source.",
     "ERROR_TIMED_OUT": "Request timed out.",
-    "ERROR_ATCF_GET_DATA_FAILED": "Failed to get ATCF data."
+    "ERROR_ATCF_GET_DATA_FAILED": "Failed to get ATCF data.",
+    "ERROR_GET_FORECAST_NO_PARAMS": "Please pass one of name or atcf_id.",
+    "CM_GET_FORECAST": "Get the official forecast for an active TC.",
+    "CM_NO_ACTIVE_STORMS": "There are no active TCs."
 }
