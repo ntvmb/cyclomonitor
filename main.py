@@ -833,7 +833,7 @@ async def set_language(
 @bot.slash_command(name="get_forecast", description=CM_GET_FORECAST)
 async def get_forecast(
     ctx: discord.ApplicationContext,
-    name: Option(str, choices=atcf.names)
+    name: Option(str, choices=[n for n in atcf.names if n != "INVEST"])
 ):
     await ctx.defer()
     try:
