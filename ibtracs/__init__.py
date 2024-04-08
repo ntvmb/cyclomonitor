@@ -13,7 +13,7 @@ get_storm -- find TCs
 :copyright: (c) 2024 by Nathaniel Greenwell.
 """
 import sqlite3
-import requests
+import aiohttp
 import logging
 import os
 import subprocess
@@ -25,7 +25,7 @@ from .locales import *
 log = logging.getLogger(__name__)
 PATH = os.path.dirname(os.path.realpath(__file__))
 DB = f"{PATH}/BestTrack.db"
-base_uri = "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r00/access/csv"
+BASE_URI = "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r00/access/csv"
 if not os.path.exists(DB):
     log.info(IBTRACS_DB_NOT_FOUND)
 
@@ -160,7 +160,7 @@ def _remove_headers(csv: os.PathLike | str):
         del data, lines
 
 
-def update_db(mode="last3"):
+async def update_db(mode="last3"):
     """Update the best track database.
 
     Arguments:
@@ -184,19 +184,23 @@ def update_db(mode="last3"):
     log.info(IBTRACS_GETTING_DATA)
     if get_last3:
         csv = "ibtracs_last3.csv"
-        r = requests.get(f"{base_uri}/ibtracs.last3years.list.v04r00.csv",
-                         timeout=15)
-        try:
-            r.raise_for_status()
-            with open(f"{PATH}/{csv}", "wb") as f:
-                f.write(r.content)
-        except Exception:
-            log.exception(ERROR_IBTRACS_UPDATE_FAILURE)
-            raise
-        finally:
-            # Calling close does not delete the object.
-            # We want to delete the resource afterwards to save RAM because we may be working with a large amount of data.
-            del r
+        async with aiohttp.ClientSession(
+            base_url=BASE_URI,
+            timeout=aiohttp.ClientTimeout(connect=10),
+            raise_for_status=True
+        ) as session:
+            try:
+                r = await session.get("/ibtracs.last3years.list.v04r00.csv")
+                with open(f"{PATH}/{csv}", "w") as f:
+                    f.write(await r.text())
+            except Exception:
+                log.exception(ERROR_IBTRACS_UPDATE_FAILURE)
+                raise
+            finally:
+                # Calling close does not delete the object.
+                # We want to delete the resource afterwards to save RAM
+                # because we may be working with a large amount of data.
+                del r
         _remove_headers(f"{PATH}/{csv}")
         subprocess.run(["sqlite3", DB],
                        input=f".cd {PATH}\n.read ibtracs_LAST3.sql",
@@ -205,17 +209,23 @@ def update_db(mode="last3"):
         os.unlink(f"{PATH}/ibtracs_last3_NO_HEADING.csv")
     if get_all:
         csv = "ibtracs_all.csv"
-        r = requests.get(f"{base_uri}/ibtracs.ALL.list.v04r00.csv",
-                         timeout=15)
-        try:
-            r.raise_for_status()
-            with open(f"{PATH}/{csv}", "wb") as f:
-                f.write(r.content)
-        except Exception:
-            log.exception(ERROR_IBTRACS_UPDATE_FAILURE)
-            raise
-        finally:
-            del r
+        async with aiohttp.ClientSession(
+            base_url=BASE_URI,
+            timeout=aiohttp.ClientTimeout(connect=10),
+            raise_for_status=True
+        ) as session:
+            try:
+                r = await session.get("/ibtracs.ALL.list.v04r00.csv")
+                with open(f"{PATH}/{csv}", "w") as f:
+                    f.write(await r.text())
+            except Exception:
+                log.exception(ERROR_IBTRACS_UPDATE_FAILURE)
+                raise
+            finally:
+                # Calling close does not delete the object.
+                # We want to delete the resource afterwards to save RAM
+                # because we may be working with a large amount of data.
+                del r
         _remove_headers(f"{PATH}/{csv}")
         subprocess.run(["sqlite3", DB],
                        input=f".cd {PATH}\n.read ibtracs_ALL.sql",
@@ -224,9 +234,9 @@ def update_db(mode="last3"):
         os.unlink(f"{PATH}/ibtracs_all_NO_HEADING.csv")
 
 
-def init_db():
+async def init_db():
     """Equivalent to :mod:`update_db("full")`"""
-    update_db("full")
+    await update_db("full")
 
 
 def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_id=None, table=None, lang="C"):

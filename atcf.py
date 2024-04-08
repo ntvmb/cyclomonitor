@@ -14,15 +14,19 @@ get_data -- get ATCF data
 get_data_alt -- get ATCF data (alt source)
 """
 import datetime
-import requests
+import aiohttp
+import asyncio
 import json
 import logging
 from itertools import zip_longest
 from locales import *
 
 # initalize variables
-URL = "https://www.nrlmry.navy.mil/tcdat/sectors/atcf_sector_file"
-URL_INTERP = "https://www.nrlmry.navy.mil/tcdat/sectors/interp_sector_file"
+# For whatever reason I have yet to discover, the domain `www.nrlmry.navy.mil`
+# causes requests from aiohttp to take much longer than expected, so I have to
+# directly connect to its IP address.
+URL = "https://199.9.2.143/tcdat/sectors/atcf_sector_file"
+URL_INTERP = "https://199.9.2.143/tcdat/sectors/interp_sector_file"
 URL_ALT = "https://api.knackwx.com/atcf/v2"
 BASE_URL_NHC = "https://www.nhc.noaa.gov/storm_graphics/{0}/{1}_5day_cone_with_line_and_wind.png"
 BASE_URL_JTWC = "https://www.metoc.navy.mil/jtwc/products/{0}.gif"
@@ -57,7 +61,7 @@ class NoActiveStorms(Exception):
     pass
 
 
-def main():
+async def main():
     print("CycloMonitor ATCF Module")
     print("CLI coming soon")
 
@@ -119,7 +123,7 @@ def parse_storm(line: str, *, mode="std"):
             tc_classes.append(storm[7])
             movement_speeds.append(float(storm[10]))
             movement_dirs.append(float(storm[11]))
-    except Exception as e:
+    except (AssertionError, LookupError, ValueError) as e:
         # remove the faulty entry
         faulty_entry = len(cyclones) - 1
         for index, (cy, n, ts, lat, lon, b, w, p) in enumerate(zip_longest(cyclones, names, timestamps, lats, longs, basins, winds, pressures)):
@@ -198,48 +202,50 @@ def load():
 load()
 
 
-def get_data():
+async def get_data():
     """Download ATCF data."""
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures
     global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
     reset()
     log.info(ATCF_USING_MAIN)
-    try:
-        ra = requests.get(URL, verify=False, timeout=15)
-        ra.raise_for_status()
-        ri = requests.get(URL_INTERP, verify=False, timeout=15)
-        ri.raise_for_status()
-    except requests.RequestException as e:
-        log.warning(ATCF_USING_MAIN_FAILED.format(e))
-        get_data_alt()
-        return
-    with open('atcf_sector_file', 'wb') as f:
-        f.write(ra.content)
-    with open('interp_sector_file', 'wb') as f:
-        f.write(ri.content)
+    async with aiohttp.ClientSession(
+        timeout=aiohttp.ClientTimeout(connect=10),
+        raise_for_status=True
+    ) as session:
+        try:
+            async with session.get(URL, ssl=False) as r:
+                with open('atcf_sector_file', 'w') as f:
+                    f.write(await r.text())
+            async with session.get(URL_INTERP, ssl=False) as r:
+                with open('interp_sector_file', 'w') as f:
+                    f.write(await r.text())
+        except Exception as e:
+            log.warning(ATCF_USING_MAIN_FAILED.format(e))
+            await get_data_alt()
+            return
     load()
     # safeguard for some situations where the main ATCF website is down
-    if len(cyclones) == 0:
-        get_data_alt()
+    if not cyclones:
+        await get_data_alt()
 
 
-def get_data_alt():
+async def get_data_alt():
     """Download ATCF data (alt source)."""
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures
     global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
     reset()
     log.info(ATCF_USING_ALT)
-    try:
-        r = requests.get(URL_ALT, verify=False, timeout=15)
-        r.raise_for_status()
-    except requests.Timeout as e:
-        raise ATCFError(ERROR_TIMED_OUT) from e
-    except requests.RequestException as exc:
-        raise ATCFError(ERROR_ATCF_GET_DATA_FAILED) from exc
-    with open('atcf_sector_file.tmp', 'wb') as f:
-        f.write(r.content)
-    with open('atcf_sector_file.tmp', 'r') as f:
-        tc_list = json.load(f)
+    async with aiohttp.ClientSession(
+        timeout=aiohttp.ClientTimeout(connect=10),
+        raise_for_status=True
+    ) as session:
+        try:
+            async with session.get(URL_ALT) as r:
+                tc_list = await r.json()
+        except asyncio.TimeoutError as e:
+            raise ATCFError(ERROR_TIMED_OUT) from e
+        except aiohttp.ClientError as exc:
+            raise ATCFError(ERROR_ATCF_GET_DATA_FAILED) from exc
 
     with open('atcf_sector_file', 'w') as f:
         for d in tc_list:
@@ -257,7 +263,7 @@ def get_data_alt():
             continue
 
 
-def get_forecast(*, name="", cid=""):
+async def get_forecast(*, name="", cid=""):
     if not (cyclones and names):
         raise NoActiveStorms()
     if not (name or cid):
@@ -290,22 +296,25 @@ def get_forecast(*, name="", cid=""):
     else:
         nhc_basin = None
 
-    if nhc_basin is not None:
-        nhc_id = f"{nhc_basin}{num}"
-        r = requests.get(BASE_URL_NHC.format(nhc_id, atcf_id), timeout=15)
-    else:
-        basin = basin.lower()
-        jtwc_id = f"{basin}{num}{jtwc_year}"
-        r = requests.get(BASE_URL_JTWC.format(jtwc_id), timeout=15)
-    r.raise_for_status()
+    async with aiohttp.ClientSession(
+        timeout=aiohttp.ClientTimeout(connect=10),
+        raise_for_status=True
+    ) as session:
+        if nhc_basin is not None:
+            nhc_id = f"{nhc_basin}{num}"
+            coro = session.get(BASE_URL_NHC.format(nhc_id, atcf_id))
+        else:
+            basin = basin.lower()
+            jtwc_id = f"{basin}{num}{jtwc_year}"
+            coro = session.get(BASE_URL_JTWC.format(jtwc_id))
 
-    # assuming everything is good, this will either be png or gif
-    ext = r.headers["Content-Type"].split("/")[1]
-
-    with open(f"forecast.{ext}", "wb") as img:
-        img.write(r.content)
+        async with coro as r:
+            # assuming everything is good, this will either be png or gif
+            ext = r.content_type.split("/")[1]
+            with open(f"forecast.{ext}", "wb") as img:
+                img.write(await r.read())
     return ext
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

@@ -115,7 +115,7 @@ class monitor(commands.Cog):
         logging.info(LOG_AUTO_UPDATE_BEGIN)
         prev_timestamps = atcf.timestamps.copy()
         try:
-            atcf.get_data()
+            await atcf.get_data()
         except atcf.ATCFError as e:
             logging.exception(ERROR_AUTO_UPDATE_FAILED)
             return
@@ -125,7 +125,7 @@ class monitor(commands.Cog):
             # try alternate source
             logging.warn(LOG_SUPPRESSED)
             try:
-                atcf.get_data_alt()
+                await atcf.get_data_alt()
             except atcf.ATCFError as e:
                 logging.exception(ERROR_AUTO_UPDATE_FAILED)
                 return
@@ -172,9 +172,9 @@ class monitor(commands.Cog):
         now = datetime.datetime.now(datetime.UTC)
         logging.info(LOG_IBTRACS_UPDATE_BEGIN)
         if (now.month == 1 and now.day == 1) or _force_full:
-            ibtracs.update_db("full")
+            await ibtracs.update_db("full")
         else:
-            ibtracs.update_db("last3")
+            await ibtracs.update_db("last3")
         global_vars.write("last_ibtracs_update", math.floor(time.time()))
         self.is_best_track_updating = False
 
@@ -469,7 +469,7 @@ async def set_tracking_channel(ctx, channel):
 async def update(ctx):
     await ctx.defer(ephemeral=True)
     channel_id = server_vars.get("tracking_channel", ctx.guild_id)
-    atcf.get_data()
+    await atcf.get_data()
     cog.last_update = math.floor(time.time())
     global_vars.write("last_update", cog.last_update)
     if channel_id is not None:
@@ -487,7 +487,7 @@ async def update(ctx):
 async def update_alt(ctx):
     await ctx.defer(ephemeral=True)
     channel_id = server_vars.get("tracking_channel", ctx.guild_id)
-    atcf.get_data_alt()
+    await atcf.get_data_alt()
     cog.last_update = math.floor(time.time())
     global_vars.write("last_update", cog.last_update)
     if channel_id is not None:
@@ -522,7 +522,7 @@ async def set_basins(
 @commands.is_owner()
 async def update_all(ctx):
     await ctx.defer(ephemeral=True)
-    atcf.get_data()
+    await atcf.get_data()
     cog.last_update = math.floor(time.time())
     global_vars.write("last_update", cog.last_update)
     for guild in bot.guilds:
@@ -538,7 +538,7 @@ async def update_all(ctx):
 @commands.is_owner()
 async def update_all_alt(ctx):
     await ctx.defer(ephemeral=True)
-    atcf.get_data_alt()
+    await atcf.get_data_alt()
     cog.last_update = math.floor(time.time())
     global_vars.write("last_update", cog.last_update)
     for guild in bot.guilds:
@@ -648,7 +648,7 @@ async def yikes(ctx):
 async def get_data(ctx):
     await ctx.defer(ephemeral=True)
     try:
-        atcf.get_data()
+        await atcf.get_data()
         cog.last_update = math.floor(time.time())
         global_vars.write("last_update", cog.last_update)
         with open('atcf_sector_file', 'r') as f:
@@ -664,7 +664,7 @@ async def get_data(ctx):
 async def get_data_alt(ctx):
     await ctx.defer(ephemeral=True)
     try:
-        atcf.get_data_alt()
+        await atcf.get_data_alt()
         cog.last_update = math.floor(time.time())
         global_vars.write("last_update", cog.last_update)
         with open('atcf_sector_file', 'r') as f:
@@ -766,7 +766,7 @@ async def get_past_storm(
         await ctx.respond(CM_SEARCHING)
         response = await ctx.interaction.original_response()
     try:
-        results = ibtracs.get_storm(
+        results = await ibtracs.get_storm(
             name=name,
             season=season,
             basin=basin,
@@ -837,7 +837,7 @@ async def get_forecast(
 ):
     await ctx.defer()
     try:
-        ext = atcf.get_forecast(name=name)
+        ext = await atcf.get_forecast(name=name)
     except atcf.NoActiveStorms:
         await ctx.respond(CM_NO_ACTIVE_STORMS)
     except Exception as e:
@@ -849,7 +849,7 @@ async def get_forecast(
 
 async def update_forecast_command():
     locale_init()
-    await bot.register_commans()
+    await bot.register_commands()
 
 # we don't want to expose the bot's token if this script is imported
 if __name__ == "__main__":
