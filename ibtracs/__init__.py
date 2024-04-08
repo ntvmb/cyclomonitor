@@ -185,12 +185,12 @@ async def update_db(mode="last3"):
     if get_last3:
         csv = "ibtracs_last3.csv"
         async with aiohttp.ClientSession(
-            base_url=BASE_URI,
             timeout=aiohttp.ClientTimeout(connect=10),
             raise_for_status=True
         ) as session:
             try:
-                r = await session.get("/ibtracs.last3years.list.v04r00.csv")
+                r = await session.get(
+                    f"{BASE_URI}/ibtracs.last3years.list.v04r00.csv")
                 with open(f"{PATH}/{csv}", "w") as f:
                     f.write(await r.text())
             except Exception:
@@ -210,12 +210,12 @@ async def update_db(mode="last3"):
     if get_all:
         csv = "ibtracs_all.csv"
         async with aiohttp.ClientSession(
-            base_url=BASE_URI,
             timeout=aiohttp.ClientTimeout(connect=10),
             raise_for_status=True
         ) as session:
             try:
-                r = await session.get("/ibtracs.ALL.list.v04r00.csv")
+                r = await session.get(
+                    f"{BASE_URI}/ibtracs.ALL.list.v04r00.csv")
                 with open(f"{PATH}/{csv}", "w") as f:
                     f.write(await r.text())
             except Exception:
