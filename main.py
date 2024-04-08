@@ -340,7 +340,7 @@ async def update_guild(guild: int, to_channel: int):
             if send_message:
                 try:
                     await channel.send(CM_STORM_INFO.format(emoji, tc_class, display_name, timestamp, name, lat, long, wind, mph, kmh, pressure, movement_str))
-                except discord.HTTPError:
+                except discord.errors.HTTPException:
                     logging.warning(LOG_GUILD_UNAVAILABLE.format(guild))
                     return
 
