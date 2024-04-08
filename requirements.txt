@@ -1,3 +1,2 @@
 py-cord>=2.5.0
-requests>=2.31.0
 tendo>=0.3.0
