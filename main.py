@@ -849,7 +849,7 @@ async def get_forecast(
 
 async def update_forecast_command():
     locale_init()
-    await bot.register_command(get_forecast)
+    await bot.register_commans()
 
 # we don't want to expose the bot's token if this script is imported
 if __name__ == "__main__":
