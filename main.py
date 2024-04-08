@@ -421,19 +421,19 @@ async def on_application_command_error(ctx: discord.ApplicationContext, error):
     if isinstance(error, commands.errors.MissingPermissions) or isinstance(error, commands.errors.NotOwner):
         try:
             await ctx.respond(CM_NO_PERMISSION, ephemeral=True)
-        except discord.HTTPError:
+        except discord.errors.HTTPException:
             logging.exception(ERROR_CANNOT_RESPOND)
         logging.warn(LOG_NO_PERMISSION.format(ctx.author, ctx.command.name))
     elif isinstance(error, commands.errors.NoPrivateMessage):
         try:
             await ctx.respond(CM_NO_DM, ephemeral=True)
-        except discord.HTTPError:
+        except discord.errors.HTTPException:
             logging.exception(ERROR_CANNOT_RESPOND)
     else:
         logging.exception(LOG_COMMAND_ERROR.format(ctx.command.name, error))
         try:
             await ctx.respond(CM_COMMAND_ERROR.format(error), ephemeral=True)
-        except discord.HTTPError:
+        except discord.errors.HTTPException:
             logging.exception(ERROR_CANNOT_RESPOND)
 
 
