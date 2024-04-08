@@ -2,14 +2,15 @@
 # This program comes with ABSOLUTELY NO WARRANTY; for details see main.py
 import json
 import logging
+
 log = logging.getLogger(__name__)
-json_file = 'serverVars.json'
+json_file = "serverVars.json"
 
 
 def write(var_name: str, value, guild: int):
     # if the json file exists, load it, otherwise initialize a blank list
     try:
-        with open(json_file, 'r') as f:
+        with open(json_file, "r") as f:
             data = json.load(f)
     except FileNotFoundError:
         data = []
@@ -20,25 +21,17 @@ def write(var_name: str, value, guild: int):
             break
     # this code segment is run if the loop was not broken
     else:
-        data.append({
-            str(guild): {
-                var_name: value
-            }
-        })
+        data.append({str(guild): {var_name: value}})
     if len(data) == 0:
-        data.append({
-            str(guild): {
-                var_name: value
-            }
-        })
-    with open(json_file, 'w') as f:
+        data.append({str(guild): {var_name: value}})
+    with open(json_file, "w") as f:
         f.write(json.dumps(data, indent=4))
 
 
 # this is expected to be assigned to a variable, so we return None if no data can be loaded
 def get(var_name: str, guild: int):
     try:
-        with open(json_file, 'r') as f:
+        with open(json_file, "r") as f:
             data = json.load(f)
     except Exception:
         log.warning("Cannot open JSON file")
@@ -53,7 +46,7 @@ def get(var_name: str, guild: int):
 
 def remove_guild(guild: int):
     try:
-        with open(json_file, 'r') as f:
+        with open(json_file, "r") as f:
             data = json.load(f)
     except Exception:
         log.warning("Cannot open JSON file")
@@ -61,5 +54,5 @@ def remove_guild(guild: int):
     for i in data:
         if i.get(str(guild)) is not None:
             data.remove(i)
-            with open(json_file, 'w') as f:
+            with open(json_file, "w") as f:
                 f.write(json.dumps(data, indent=4))

@@ -28,7 +28,9 @@ from locales import *
 URL = "https://199.9.2.143/tcdat/sectors/atcf_sector_file"
 URL_INTERP = "https://199.9.2.143/tcdat/sectors/interp_sector_file"
 URL_ALT = "https://api.knackwx.com/atcf/v2"
-BASE_URL_NHC = "https://www.nhc.noaa.gov/storm_graphics/{0}/{1}_5day_cone_with_line_and_wind.png"
+BASE_URL_NHC = (
+    "https://www.nhc.noaa.gov/storm_graphics/{0}/{1}_5day_cone_with_line_and_wind.png"
+)
 BASE_URL_JTWC = "https://www.metoc.navy.mil/jtwc/products/{0}.gif"
 cyclones = []
 names = []
@@ -48,16 +50,19 @@ log = logging.getLogger(__name__)
 
 class ATCFError(Exception):
     """An Exception for general ATCF errors."""
+
     pass
 
 
 class WrongData(Exception):
     """An Exception for incorrectly formatted data."""
+
     pass
 
 
 class NoActiveStorms(Exception):
     """Used by get_forecast() to signal that no storms are active."""
+
     pass
 
 
@@ -99,8 +104,7 @@ def parse_storm(line: str, *, mode="std"):
     storm = line.split()
     try:
         if mode == "interp":
-            assert len(storm) == 12, ATCF_ERROR_COL.format(
-                12, mode, len(storm))
+            assert len(storm) == 12, ATCF_ERROR_COL.format(12, mode, len(storm))
         else:
             assert len(storm) == 9, ATCF_ERROR_COL.format(9, mode, len(storm))
         if not mode == "interp":
@@ -126,7 +130,11 @@ def parse_storm(line: str, *, mode="std"):
     except (AssertionError, LookupError, ValueError) as e:
         # remove the faulty entry
         faulty_entry = len(cyclones) - 1
-        for index, (cy, n, ts, lat, lon, b, w, p) in enumerate(zip_longest(cyclones, names, timestamps, lats, longs, basins, winds, pressures)):
+        for index, (cy, n, ts, lat, lon, b, w, p) in enumerate(
+            zip_longest(
+                cyclones, names, timestamps, lats, longs, basins, winds, pressures
+            )
+        ):
             if index == faulty_entry:
                 if cy is not None:
                     cyclones.remove(cy)
@@ -146,7 +154,11 @@ def parse_storm(line: str, *, mode="std"):
                     pressures.remove(p)
 
         if mode == "interp":
-            for index, (la, lo, c, ms, md) in enumerate(zip_longest(lats_real, longs_real, tc_classes, movement_speeds, movement_dirs)):
+            for index, (la, lo, c, ms, md) in enumerate(
+                zip_longest(
+                    lats_real, longs_real, tc_classes, movement_speeds, movement_dirs
+                )
+            ):
                 if index == faulty_entry:
                     if la is not None:
                         lats_real.remove(la)
@@ -166,7 +178,7 @@ def parse_storm(line: str, *, mode="std"):
 def load():
     """Load ATCF data saved on disk."""
     try:
-        with open('atcf_sector_file', 'r') as file:
+        with open("atcf_sector_file", "r") as file:
             for line in file:
                 try:
                     parse_storm(line)
@@ -177,7 +189,7 @@ def load():
         return
 
     try:
-        with open('interp_sector_file', 'r') as file:
+        with open("interp_sector_file", "r") as file:
             storms = []
             for line in file:
                 storms.append(line.split())
@@ -209,15 +221,14 @@ async def get_data():
     reset()
     log.info(ATCF_USING_MAIN)
     async with aiohttp.ClientSession(
-        timeout=aiohttp.ClientTimeout(connect=10),
-        raise_for_status=True
+        timeout=aiohttp.ClientTimeout(connect=10), raise_for_status=True
     ) as session:
         try:
             async with session.get(URL, ssl=False) as r:
-                with open('atcf_sector_file', 'w') as f:
+                with open("atcf_sector_file", "w") as f:
                     f.write(await r.text())
             async with session.get(URL_INTERP, ssl=False) as r:
-                with open('interp_sector_file', 'w') as f:
+                with open("interp_sector_file", "w") as f:
                     f.write(await r.text())
         except Exception as e:
             log.warning(ATCF_USING_MAIN_FAILED.format(e))
@@ -236,8 +247,7 @@ async def get_data_alt():
     reset()
     log.info(ATCF_USING_ALT)
     async with aiohttp.ClientSession(
-        timeout=aiohttp.ClientTimeout(connect=10),
-        raise_for_status=True
+        timeout=aiohttp.ClientTimeout(connect=10), raise_for_status=True
     ) as session:
         try:
             async with session.get(URL_ALT) as r:
@@ -247,18 +257,18 @@ async def get_data_alt():
         except aiohttp.ClientError as exc:
             raise ATCFError(ERROR_ATCF_GET_DATA_FAILED) from exc
 
-    with open('atcf_sector_file', 'w') as f:
+    with open("atcf_sector_file", "w") as f:
         for d in tc_list:
-            f.write(d['atcf_sector_file']+"\n")
+            f.write(d["atcf_sector_file"] + "\n")
 
-    with open('interp_sector_file', 'w') as f:
+    with open("interp_sector_file", "w") as f:
         for d in tc_list:
-            f.write(d['interp_sector_file']+"\n")
+            f.write(d["interp_sector_file"] + "\n")
 
     for d in tc_list:
         try:
-            parse_storm(d['atcf_sector_file'])
-            parse_storm(d['interp_sector_file'], mode="interp")
+            parse_storm(d["atcf_sector_file"])
+            parse_storm(d["interp_sector_file"], mode="interp")
         except WrongData:
             continue
 
@@ -297,8 +307,7 @@ async def get_forecast(*, name="", cid=""):
         nhc_basin = None
 
     async with aiohttp.ClientSession(
-        timeout=aiohttp.ClientTimeout(connect=10),
-        raise_for_status=True
+        timeout=aiohttp.ClientTimeout(connect=10), raise_for_status=True
     ) as session:
         if nhc_basin is not None:
             nhc_id = f"{nhc_basin}{num}"

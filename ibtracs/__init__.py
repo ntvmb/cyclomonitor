@@ -12,6 +12,7 @@ init_db -- initialize database
 get_storm -- find TCs
 :copyright: (c) 2024 by Nathaniel Greenwell.
 """
+
 import sqlite3
 import aiohttp
 import logging
@@ -47,6 +48,7 @@ class Storm:
     nature() -- cyclonic nature at peak
     is_subtropical()
     """
+
     atcf_id: str
     basin: str
     peak_winds: int
@@ -95,8 +97,13 @@ class Storm:
             params = [self.best_track_id, self.peak_winds, self.peak_winds]
             conds = f"SID = ? AND NATURE != 'ET' AND (WMO_WIND = ? OR USA_WIND = ?)"
         else:
-            params = [self.name, self.season, self.basin,
-                      self.peak_winds, self.peak_winds]
+            params = [
+                self.name,
+                self.season,
+                self.basin,
+                self.peak_winds,
+                self.peak_winds,
+            ]
             conds = f"NAME = ? AND SEASON = ? AND BASIN = ? AND NATURE != 'ET' AND (WMO_WIND = ? OR USA_WIND = ?)"
         res = cur.execute(f"SELECT NATURE FROM {table} WHERE {conds}", params)
         natures = res.fetchall()
@@ -120,6 +127,7 @@ class Query:
     basin -- basin the storm formed in
     name -- the storm's name
     """
+
     sid: str
     season: int
     basin: str
@@ -185,12 +193,10 @@ async def update_db(mode="last3"):
     if get_last3:
         csv = "ibtracs_last3.csv"
         async with aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(connect=10),
-            raise_for_status=True
+            timeout=aiohttp.ClientTimeout(connect=10), raise_for_status=True
         ) as session:
             try:
-                r = await session.get(
-                    f"{BASE_URI}/ibtracs.last3years.list.v04r00.csv")
+                r = await session.get(f"{BASE_URI}/ibtracs.last3years.list.v04r00.csv")
                 with open(f"{PATH}/{csv}", "w") as f:
                     f.write(await r.text())
             except Exception:
@@ -202,20 +208,20 @@ async def update_db(mode="last3"):
                 # because we may be working with a large amount of data.
                 del r
         _remove_headers(f"{PATH}/{csv}")
-        subprocess.run(["sqlite3", DB],
-                       input=f".cd {PATH}\n.read ibtracs_LAST3.sql",
-                       encoding="UTF-8",
-                       check=True)
+        subprocess.run(
+            ["sqlite3", DB],
+            input=f".cd {PATH}\n.read ibtracs_LAST3.sql",
+            encoding="UTF-8",
+            check=True,
+        )
         os.unlink(f"{PATH}/ibtracs_last3_NO_HEADING.csv")
     if get_all:
         csv = "ibtracs_all.csv"
         async with aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(connect=10),
-            raise_for_status=True
+            timeout=aiohttp.ClientTimeout(connect=10), raise_for_status=True
         ) as session:
             try:
-                r = await session.get(
-                    f"{BASE_URI}/ibtracs.ALL.list.v04r00.csv")
+                r = await session.get(f"{BASE_URI}/ibtracs.ALL.list.v04r00.csv")
                 with open(f"{PATH}/{csv}", "w") as f:
                     f.write(await r.text())
             except Exception:
@@ -227,10 +233,12 @@ async def update_db(mode="last3"):
                 # because we may be working with a large amount of data.
                 del r
         _remove_headers(f"{PATH}/{csv}")
-        subprocess.run(["sqlite3", DB],
-                       input=f".cd {PATH}\n.read ibtracs_ALL.sql",
-                       encoding="UTF-8",
-                       check=True)
+        subprocess.run(
+            ["sqlite3", DB],
+            input=f".cd {PATH}\n.read ibtracs_ALL.sql",
+            encoding="UTF-8",
+            check=True,
+        )
         os.unlink(f"{PATH}/ibtracs_all_NO_HEADING.csv")
 
 
@@ -239,7 +247,16 @@ async def init_db():
     await update_db("full")
 
 
-def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_id=None, table=None, lang="C"):
+def get_storm(
+    *,
+    name=None,
+    season: int = 0,
+    basin=None,
+    atcf_id=None,
+    ibtracs_id=None,
+    table=None,
+    lang="C",
+):
     """Find a TC and return either a query_group() or a Storm().
 
     If only one storm is found, return a Storm() object.
@@ -301,12 +318,14 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
         table = "LastThreeYears"
     log.debug(IBTRACS_CONDS.format(conds))
     res = cur.execute(
-        f"SELECT SID, SEASON, BASIN, NAME FROM {table} WHERE {conds}", params)
+        f"SELECT SID, SEASON, BASIN, NAME FROM {table} WHERE {conds}", params
+    )
     data = res.fetchall()
     if not data:
         table = "AllBestTrack"
         res = cur.execute(
-            f"SELECT SID, SEASON, BASIN, NAME FROM AllBestTrack WHERE {conds}", params)
+            f"SELECT SID, SEASON, BASIN, NAME FROM AllBestTrack WHERE {conds}", params
+        )
         data = res.fetchall()
         if not data:
             return None
@@ -319,21 +338,27 @@ def get_storm(*, name=None, season: int = 0, basin=None, atcf_id=None, ibtracs_i
                 return query_group(storms)
     params = [sid]
     res = cur.execute(
-        f"SELECT USA_ATCF_ID, BASIN, MAX(USA_WIND), USA_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = ? AND USA_WIND != ' ' AND NATURE != 'ET'", params)
+        f"SELECT USA_ATCF_ID, BASIN, MAX(USA_WIND), USA_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = ? AND USA_WIND != ' ' AND NATURE != 'ET'",
+        params,
+    )
     atcf_id, basin, wind, pres, time, name, season = res.fetchone()
     if pres == " ":
         params = [sid, time]
         res = cur.execute(
-            f"SELECT WMO_PRES FROM {table} WHERE SID = ? and ISO_TIME = ?", params)
+            f"SELECT WMO_PRES FROM {table} WHERE SID = ? and ISO_TIME = ?", params
+        )
         pres = res.fetchone()[0]
     if name is None:
         params = [sid]
         res = cur.execute(
-            f"SELECT USA_ATCF_ID, BASIN, MAX(WMO_WIND), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = ? AND WMO_WIND != ' '", params)
+            f"SELECT USA_ATCF_ID, BASIN, MAX(WMO_WIND), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = ? AND WMO_WIND != ' '",
+            params,
+        )
         atcf_id, basin, wind, pres, time, name, season = res.fetchone()
         if name is None:
             res = cur.execute(
-                f"SELECT USA_ATCF_ID, BASIN, MAX(USA_SSHS), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = params")
+                f"SELECT USA_ATCF_ID, BASIN, MAX(USA_SSHS), WMO_PRES, ISO_TIME, NAME, SEASON FROM {table} WHERE SID = params"
+            )
             atcf_id, basin, sshs, pres, time, name, season = res.fetchone()
             wind = 0
     if pres == " ":

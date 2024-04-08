@@ -1,10 +1,12 @@
 """CycloMonitor locales"""
+
 import locale
 import json
 import pathlib
 import os
 import sys as _sys
 import logging as _logging
+
 LOG_TENDO_NOT_FOUND = "LOG_TENDO_NOT_FOUND"
 ERROR_ALREADY_RUNNING = "ERROR_ALREADY_RUNNING"
 LOG_MONITOR_STOP = "LOG_MONITOR_STOP"
@@ -165,14 +167,13 @@ _PATH = os.path.dirname(os.path.realpath(__file__))
 
 
 def set_locale(lang="C"):
-    """Set the locale to :mod:`lang`. Returns the language that was set."""
+    """Set the locale to `lang`. Returns the language that was set."""
     json_file = pathlib.Path(f"{_PATH}/{lang}.json")
     try:
         with json_file.open() as f:
             lc = json.load(f)
     except OSError:
-        _log.exception(
-            f"Locale {lang} not found. Falling back to default locale (C).")
+        _log.exception(f"Locale {lang} not found. Falling back to default locale (C).")
         lang = "C"
         with open(f"{_PATH}/C.json") as f:
             lc = json.load(f)
@@ -186,6 +187,7 @@ def locale_init():
     global lang
     if _sys.platform.startswith("win32"):
         import ctypes
+
         windll = ctypes.windll.kernel32
         lang = locale.windows_locale[windll.GetUserDefaultUILanguage()]
     else:
