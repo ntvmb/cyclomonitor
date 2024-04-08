@@ -513,7 +513,8 @@ async def set_basins(
 ):
     await ctx.defer(ephemeral=True)
     # this effectively represents a 6-bit binary value
-    enabled_basins = f"{int(natl)}{int(epac)}{int(cpac)}{int(wpac)}{int(nio)}{int(shem)}"
+    enabled_basins = f"{int(natl)}{int(epac)}{int(cpac)}{
+        int(wpac)}{int(nio)}{int(shem)}"
     server_vars.write("basins", enabled_basins, ctx.guild_id)
     await ctx.respond(CM_BASINS_SAVED, ephemeral=True)
 
@@ -766,7 +767,7 @@ async def get_past_storm(
         await ctx.respond(CM_SEARCHING)
         response = await ctx.interaction.original_response()
     try:
-        results = await ibtracs.get_storm(
+        results = ibtracs.get_storm(
             name=name,
             season=season,
             basin=basin,
