@@ -8,8 +8,15 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 For those hosting a copy of this bot, you should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
+
 import discord
-from discord import option, default_permissions, SlashCommandOptionType, guild_only, Option
+from discord import (
+    option,
+    default_permissions,
+    SlashCommandOptionType,
+    guild_only,
+    Option,
+)
 from discord.ext import tasks, commands
 import math
 import server_vars
@@ -38,12 +45,14 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 For those hosting a copy of this bot, you should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-logname = 'bot.log'
-logging.basicConfig(filename=logname,
-                    filemode='a',
-                    format='%(asctime)s.%(msecs)d %(name)s %(levelname)s %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO)
+logname = "bot.log"
+logging.basicConfig(
+    filename=logname,
+    filemode="a",
+    format="%(asctime)s.%(msecs)d %(name)s %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+)
 # PLEASE CHANGE THESE LINKS IF YOU ARE FORKING THIS PROJECT.
 INVITE = "https://discord.com/api/oauth2/authorize?client_id=1107462705004167230&permissions=67496000&scope=bot"
 GITHUB = "https://github.com/ntvmb/cyclomonitor"
@@ -69,7 +78,7 @@ times = [
     datetime.time(2, 0, tzinfo=datetime.UTC),
     datetime.time(8, 0, tzinfo=datetime.UTC),
     datetime.time(14, 0, tzinfo=datetime.UTC),
-    datetime.time(20, 0, tzinfo=datetime.UTC)
+    datetime.time(20, 0, tzinfo=datetime.UTC),
 ]
 KT_TO_MPH = 1.15077945
 KT_TO_KMH = 1.852
@@ -91,17 +100,15 @@ class monitor(commands.Cog):
     def should_suppress(self, prev_timestamps: list):
         """Compare two lists of timestamps and return a boolean."""
         suppressed = []
-        for index, (cyclone, timestamp, p_timestamp) in enumerate(zip(
-            atcf.cyclones, atcf.timestamps, prev_timestamps
-        )):
+        for index, (cyclone, timestamp, p_timestamp) in enumerate(
+            zip(atcf.cyclones, atcf.timestamps, prev_timestamps)
+        ):
             try:
                 # will this system request for a suppression?
                 suppressed.append(p_timestamp >= timestamp)
             except IndexError:
                 suppressed.append(False)
-            logging.debug(
-                LOG_TIMESTAMP_COMPARISON.format(cyclone, suppressed[index])
-            )
+            logging.debug(LOG_TIMESTAMP_COMPARISON.format(cyclone, suppressed[index]))
         if not atcf.cyclones:
             suppressed.append(False)
         # only suppress an automatic update if all active systems requested a suppression
@@ -136,7 +143,11 @@ class monitor(commands.Cog):
                     if channel_id is not None:
                         channel = bot.get_channel(channel_id)
                         await channel.send(CM_SUPPRESSED_MESSAGE)
-                        await channel.send(NEXT_AUTO_UPDATE.format(math.floor(cog.auto_update.next_iteration.timestamp())))
+                        await channel.send(
+                            NEXT_AUTO_UPDATE.format(
+                                math.floor(cog.auto_update.next_iteration.timestamp())
+                            )
+                        )
                 return
         for guild in bot.guilds:
             channel_id = server_vars.get("tracking_channel", guild.id)
@@ -153,7 +164,7 @@ class monitor(commands.Cog):
         bot_owner = app.owner
         if bot_owner is not None:
             try:
-                with open('bot.log', 'rb') as log:
+                with open("bot.log", "rb") as log:
                     await bot_owner.send(CM_ATTACH_LOG, file=discord.File(log))
             except discord.HTTPException:
                 logging.exception(ERROR_LOG_SEND_FAIL)
@@ -212,13 +223,33 @@ async def update_guild(guild: int, to_channel: int):
     if enabled_basins is not None:
         sent_list = []
         for (
-            cyc_id, basin, wind, name, timestamp, lat, long, pressure,
-            tc_class, lat_real, long_real, movement_speed, movement_dir
+            cyc_id,
+            basin,
+            wind,
+            name,
+            timestamp,
+            lat,
+            long,
+            pressure,
+            tc_class,
+            lat_real,
+            long_real,
+            movement_speed,
+            movement_dir,
         ) in zip(
-            atcf.cyclones, atcf.basins, atcf.winds, atcf.names,
-            atcf.timestamps, atcf.lats, atcf.longs, atcf.pressures,
-            atcf.tc_classes, atcf.lats_real, atcf.longs_real,
-            atcf.movement_speeds, atcf.movement_dirs
+            atcf.cyclones,
+            atcf.basins,
+            atcf.winds,
+            atcf.names,
+            atcf.timestamps,
+            atcf.lats,
+            atcf.longs,
+            atcf.pressures,
+            atcf.tc_classes,
+            atcf.lats_real,
+            atcf.longs_real,
+            atcf.movement_speeds,
+            atcf.movement_dirs,
         ):
             # per standard, we round to the nearest 5
             mph = round(wind * KT_TO_MPH / 5) * 5
@@ -230,7 +261,8 @@ async def update_guild(guild: int, to_channel: int):
                 movement_mph = movement_speed * KT_TO_MPH
                 movement_kph = movement_speed * KT_TO_KMH
                 movement_str = STORM_MOVEMENT.format(
-                    c_dir, movement_speed, movement_mph, movement_kph)
+                    c_dir, movement_speed, movement_mph, movement_kph
+                )
             # accomodate for basin crossovers
             if lat_real > 0 and long_real > 30 and long_real < 97:
                 basin = "IO"
@@ -238,7 +270,13 @@ async def update_guild(guild: int, to_channel: int):
                 basin = "WPAC"
             elif lat_real > 0 and long_real < -140:
                 basin = "CPAC"
-            elif lat_real > 0 and ((lat_real < 7.6 and long_real < -77) or (lat_real < 10 and long_real < -85) or (lat_real < 15 and long_real < -87) or (lat_real < 16 and long_real < -92.5) or long_real < -100):
+            elif lat_real > 0 and (
+                (lat_real < 7.6 and long_real < -77)
+                or (lat_real < 10 and long_real < -85)
+                or (lat_real < 15 and long_real < -87)
+                or (lat_real < 16 and long_real < -92.5)
+                or long_real < -100
+            ):
                 basin = "EPAC"
             logging.debug(LOG_BASIN.format(cyc_id, basin))
 
@@ -260,7 +298,7 @@ async def update_guild(guild: int, to_channel: int):
                 if not name == "INVEST":
                     tc_class = CLASS_PTC
                 emoji = "<:low:1109997033227558923>"
-            elif (tc_class == "DB" or tc_class == "WV"):
+            elif tc_class == "DB" or tc_class == "WV":
                 if not name == "INVEST":
                     tc_class = CLASS_RL
                 emoji = "<:remnants:1109994646932836386>"
@@ -322,24 +360,72 @@ async def update_guild(guild: int, to_channel: int):
                 display_name = f"{cyc_id} ({name})"
             # update TC records
             if current_TC_record is not None:
-                if (wind > int(current_TC_record[5])) or (wind == int(current_TC_record[5]) and pressure < int(current_TC_record[8])):
+                if (wind > int(current_TC_record[5])) or (
+                    wind == int(current_TC_record[5])
+                    and pressure < int(current_TC_record[8])
+                ):
                     logging.info(LOG_NEW_RECORD)
-                    global_vars.write("strongest_storm", [emoji, tc_class, cyc_id, name, str(
-                        timestamp), str(wind), str(mph), str(kmh), str(pressure)])
+                    global_vars.write(
+                        "strongest_storm",
+                        [
+                            emoji,
+                            tc_class,
+                            cyc_id,
+                            name,
+                            str(timestamp),
+                            str(wind),
+                            str(mph),
+                            str(kmh),
+                            str(pressure),
+                        ],
+                    )
             else:
                 logging.info(LOG_NO_RECORD)
-                global_vars.write("strongest_storm", [emoji, tc_class, cyc_id, name, str(
-                    timestamp), str(wind), str(mph), str(kmh), str(pressure)])
+                global_vars.write(
+                    "strongest_storm",
+                    [
+                        emoji,
+                        tc_class,
+                        cyc_id,
+                        name,
+                        str(timestamp),
+                        str(wind),
+                        str(mph),
+                        str(kmh),
+                        str(pressure),
+                    ],
+                )
 
             # this check is really long since it needs to accomodate for every possible situation
-            send_message = (basin == "ATL" and enabled_basins[0] == "1") or (basin == "EPAC" and enabled_basins[1] == "1") or (basin == "CPAC" and enabled_basins[2] == "1") or (
-                basin == "WPAC" and enabled_basins[3] == "1") or (basin == "IO" and enabled_basins[4] == "1") or (basin == "SHEM" and enabled_basins[5] == "1")
+            send_message = (
+                (basin == "ATL" and enabled_basins[0] == "1")
+                or (basin == "EPAC" and enabled_basins[1] == "1")
+                or (basin == "CPAC" and enabled_basins[2] == "1")
+                or (basin == "WPAC" and enabled_basins[3] == "1")
+                or (basin == "IO" and enabled_basins[4] == "1")
+                or (basin == "SHEM" and enabled_basins[5] == "1")
+            )
             sent_list.append(send_message)
             if math.isnan(pressure):
                 pressure = "N/A"
             if send_message:
                 try:
-                    await channel.send(CM_STORM_INFO.format(emoji, tc_class, display_name, timestamp, name, lat, long, wind, mph, kmh, pressure, movement_str))
+                    await channel.send(
+                        CM_STORM_INFO.format(
+                            emoji,
+                            tc_class,
+                            display_name,
+                            timestamp,
+                            name,
+                            lat,
+                            long,
+                            wind,
+                            mph,
+                            kmh,
+                            pressure,
+                            movement_str,
+                        )
+                    )
                 except discord.errors.HTTPException:
                     logging.warning(LOG_GUILD_UNAVAILABLE.format(guild))
                     return
@@ -361,7 +447,9 @@ async def update_guild(guild: int, to_channel: int):
 @bot.event
 async def on_ready():
     locale_init()
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=CM_WATCHING))
+    await bot.change_presence(
+        activity=discord.Activity(type=discord.ActivityType.watching, name=CM_WATCHING)
+    )
     logging.info(LOG_READY.format(bot.user))
     global_vars.write("guild_count", len(bot.guilds))
     global cog
@@ -384,7 +472,9 @@ async def on_ready():
     if (cog.last_update is None) or (math.floor(time.time()) - cog.last_update > 21600):
         await cog.auto_update()
     # same idea as above but for IBTrACS data, and the limit is 24 hours
-    if (cog.last_ibtracs_update is None) or (math.floor(time.time()) - cog.last_ibtracs_update > 86400):
+    if (cog.last_ibtracs_update is None) or (
+        math.floor(time.time()) - cog.last_ibtracs_update > 86400
+    ):
         await cog.daily_ibtracs_update()
 
 
@@ -418,7 +508,9 @@ async def on_application_command(ctx: discord.ApplicationContext):
 
 @bot.event
 async def on_application_command_error(ctx: discord.ApplicationContext, error):
-    if isinstance(error, commands.errors.MissingPermissions) or isinstance(error, commands.errors.NotOwner):
+    if isinstance(error, commands.errors.MissingPermissions) or isinstance(
+        error, commands.errors.NotOwner
+    ):
         try:
             await ctx.respond(CM_NO_PERMISSION, ephemeral=True)
         except discord.errors.HTTPException:
@@ -446,11 +538,7 @@ async def ping(ctx):
 @bot.slash_command(name="set_tracking_channel", description=CM_SET_TRACKING_CHANNEL)
 @guild_only()
 @commands.has_guild_permissions(manage_channels=True)
-@option(
-    "channel",
-    discord.TextChannel,
-    description=CM_CHANNEL_TO_USE
-)
+@option("channel", discord.TextChannel, description=CM_CHANNEL_TO_USE)
 async def set_tracking_channel(ctx, channel):
     await ctx.defer(ephemeral=True)
     if not isinstance(channel, discord.TextChannel):
@@ -509,12 +597,13 @@ async def set_basins(
     cpac: Option(bool, CM_CPAC),
     wpac: Option(bool, CM_WPAC),
     nio: Option(bool, CM_NIO),
-    shem: Option(bool, CM_SHEM)
+    shem: Option(bool, CM_SHEM),
 ):
     await ctx.defer(ephemeral=True)
+    # fmt: off
     # this effectively represents a 6-bit binary value
-    enabled_basins = f"{int(natl)}{int(epac)}{int(cpac)}{
-        int(wpac)}{int(nio)}{int(shem)}"
+    enabled_basins = f"{int(natl)}{int(epac)}{int(cpac)}{int(wpac)}{int(nio)}{int(shem)}"
+    # fmt: on
     server_vars.write("basins", enabled_basins, ctx.guild_id)
     await ctx.respond(CM_BASINS_SAVED, ephemeral=True)
 
@@ -554,8 +643,7 @@ async def update_all_alt(ctx):
 @bot.slash_command(name="announce_all", description=CM_ANNOUNCE_ALL)
 @commands.is_owner()
 async def announce_all(
-    ctx: discord.ApplicationContext,
-    announcement: Option(str, CM_TO_ANNOUNCE)
+    ctx: discord.ApplicationContext, announcement: Option(str, CM_TO_ANNOUNCE)
 ):
     await ctx.defer(ephemeral=True)
     for guild in bot.guilds:
@@ -570,8 +658,12 @@ async def announce_all(
 @commands.is_owner()
 async def announce_basin(
     ctx: discord.ApplicationContext,
-    basin: Option(str, CM_BASIN_TO_ANNOUNCE, choices=["natl", "epac", "cpac", "wpac", "nio", "shem"]),
-    announcement: Option(str, CM_TO_ANNOUNCE)
+    basin: Option(
+        str,
+        CM_BASIN_TO_ANNOUNCE,
+        choices=["natl", "epac", "cpac", "wpac", "nio", "shem"],
+    ),
+    announcement: Option(str, CM_TO_ANNOUNCE),
 ):
     await ctx.defer(ephemeral=True)
     for guild in bot.guilds:
@@ -579,25 +671,33 @@ async def announce_basin(
         enabled_basins = server_vars.get("basins", guild.id)
         if channel_id is not None:
             channel = bot.get_channel(channel_id)
-            send_message = (basin == "natl" and enabled_basins[0] == "1") or (basin == "epac" and enabled_basins[1] == "1") or (basin == "cpac" and enabled_basins[2] == "1") or (
-                basin == "wpac" and enabled_basins[3] == "1") or (basin == "nio" and enabled_basins[4] == "1") or (basin == "shem" and enabled_basins[5] == "1")
+            send_message = (
+                (basin == "natl" and enabled_basins[0] == "1")
+                or (basin == "epac" and enabled_basins[1] == "1")
+                or (basin == "cpac" and enabled_basins[2] == "1")
+                or (basin == "wpac" and enabled_basins[3] == "1")
+                or (basin == "nio" and enabled_basins[4] == "1")
+                or (basin == "shem" and enabled_basins[5] == "1")
+            )
             if send_message:
                 await channel.send(CM_BASIN_ANNOUNCEMENT.format(basin, announcement))
-    await ctx.respond(CM_ANNOUNCE_BASIN_SUCCESS.format(basin, announcement), ephemeral=True)
+    await ctx.respond(
+        CM_ANNOUNCE_BASIN_SUCCESS.format(basin, announcement), ephemeral=True
+    )
 
 
 @bot.slash_command(name="announce_file", description=CM_ANNOUNCE_FILE)
 @commands.is_owner()
 async def announce_file(
     ctx: discord.ApplicationContext,
-    file: Option(discord.SlashCommandOptionType.attachment, CM_TXT_FILE)
+    file: Option(discord.SlashCommandOptionType.attachment, CM_TXT_FILE),
 ):
     await ctx.defer(ephemeral=True)
     print(file.content_type)
-    if file.content_type.startswith('text'):
-        with open('announcement.md', 'wb') as f:
+    if file.content_type.startswith("text"):
+        with open("announcement.md", "wb") as f:
             await file.save(f)
-        announcement = open('announcement.md', 'r').read()
+        announcement = open("announcement.md", "r").read()
         for guild in bot.guilds:
             channel_id = server_vars.get("tracking_channel", guild.id)
             if channel_id is not None:
@@ -623,7 +723,11 @@ async def statistics(ctx):
         return
     yikes_count = global_vars.get("yikes_count")
     guild_count = global_vars.get("guild_count")
-    await ctx.respond(CM_STATISTICS.format(guild_count, strongest_storm, yikes_count, process_uptime_human_readable()))
+    await ctx.respond(
+        CM_STATISTICS.format(
+            guild_count, strongest_storm, yikes_count, process_uptime_human_readable()
+        )
+    )
 
 
 @bot.slash_command(name="yikes", description=CM_YIKES)
@@ -652,7 +756,7 @@ async def get_data(ctx):
         await atcf.get_data()
         cog.last_update = math.floor(time.time())
         global_vars.write("last_update", cog.last_update)
-        with open('atcf_sector_file', 'r') as f:
+        with open("atcf_sector_file", "r") as f:
             content = f.read()
             await ctx.respond(CM_GET_DATA_SUCCESS.format(content), ephemeral=True)
     except atcf.ATCFError as e:
@@ -668,7 +772,7 @@ async def get_data_alt(ctx):
         await atcf.get_data_alt()
         cog.last_update = math.floor(time.time())
         global_vars.write("last_update", cog.last_update)
-        with open('atcf_sector_file', 'r') as f:
+        with open("atcf_sector_file", "r") as f:
             content = f.read()
             await ctx.respond(CM_GET_DATA_SUCCESS.format(content), ephemeral=True)
     except atcf.ATCFError as e:
@@ -732,8 +836,7 @@ async def resume_updates(ctx):
 
 @bot.slash_command(name="feedback", description=CM_FEEDBACK)
 async def feedback(
-        ctx: discord.ApplicationContext,
-        msg: Option(str, CM_FEEDBACK_TO_SEND)
+    ctx: discord.ApplicationContext, msg: Option(str, CM_FEEDBACK_TO_SEND)
 ):
     await ctx.defer(ephemeral=True)
     app = await bot.application_info()
@@ -750,11 +853,20 @@ async def get_past_storm(
     ctx: discord.ApplicationContext,
     name: Option(str, CM_PAST_STORM_NAME, default=None),
     season: Option(int, CM_PAST_STORM_SEASON, min_value=1841, default=0),
-    basin: Option(str, CM_PAST_STORM_BASIN, choices=["NA", "SA", "EP", "WP", "SP", "NI", "SI"], default=None),
+    basin: Option(
+        str,
+        CM_PAST_STORM_BASIN,
+        choices=["NA", "SA", "EP", "WP", "SP", "NI", "SI"],
+        default=None,
+    ),
     atcf_id: Option(str, CM_PAST_STORM_ATCF, default=None),
     ibtracs_id: Option(str, CM_PAST_STORM_SID, default=None),
-    table: Option(str, CM_PAST_STORM_TABLE, choices=[
-                  "LastThreeYears", "AllBestTrack"], default="LastThreeYears")
+    table: Option(
+        str,
+        CM_PAST_STORM_TABLE,
+        choices=["LastThreeYears", "AllBestTrack"],
+        default="LastThreeYears",
+    ),
 ):
     await ctx.defer(ephemeral=True)
     if cog.is_best_track_updating:
@@ -774,7 +886,7 @@ async def get_past_storm(
             atcf_id=atcf_id,
             ibtracs_id=ibtracs_id,
             table=table,
-            lang=server_vars.get("lang", ctx.guild_id)
+            lang=server_vars.get("lang", ctx.guild_id),
         )
     except ValueError as e:
         await response.edit(CM_ERROR.format(e))
@@ -787,8 +899,11 @@ async def get_past_storm(
         await response.edit(res_tmp.getvalue())
         res_tmp.close()
     elif isinstance(results, ibtracs.Storm):
-        peak_timestamp = int(datetime.datetime.fromisoformat(
-            results.time_of_peak).replace(tzinfo=datetime.UTC).timestamp())
+        peak_timestamp = int(
+            datetime.datetime.fromisoformat(results.time_of_peak)
+            .replace(tzinfo=datetime.UTC)
+            .timestamp()
+        )
         nature = results.nature().title()
         name = results.name.title()
         if name == "Not_Named":
@@ -809,10 +924,18 @@ async def get_past_storm(
             atcf_id = CM_UNKNOWN
         else:
             atcf_id = results.atcf_id
-        await response.edit(content=CM_PAST_STORM_INFO.format(
-            descriptor, results.season, results.basin, peak_winds, peak_pres,
-            peak_time, atcf_id, results.best_track_id
-        ))
+        await response.edit(
+            content=CM_PAST_STORM_INFO.format(
+                descriptor,
+                results.season,
+                results.basin,
+                peak_winds,
+                peak_pres,
+                peak_time,
+                atcf_id,
+                results.best_track_id,
+            )
+        )
     elif results is None:
         await response.edit(content=CM_NO_RESULTS)
     else:
@@ -823,7 +946,7 @@ async def get_past_storm(
 @bot.slash_command(name="set_language", description=CM_SET_LANGUAGE)
 async def set_language(
     ctx: discord.ApplicationContext,
-    language: Option(str, CM_LANG_TO_USE, choices=languages)
+    language: Option(str, CM_LANG_TO_USE, choices=languages),
 ):
     await ctx.defer(ephemeral=True)
     server_vars.write("lang", language, ctx.guild.id)
@@ -834,7 +957,7 @@ async def set_language(
 @bot.slash_command(name="get_forecast", description=CM_GET_FORECAST)
 async def get_forecast(
     ctx: discord.ApplicationContext,
-    name: Option(str, choices=[n for n in atcf.names if n != "INVEST"])
+    name: Option(str, choices=[n for n in atcf.names if n != "INVEST"]),
 ):
     await ctx.defer()
     try:
@@ -852,8 +975,9 @@ async def update_forecast_command():
     locale_init()
     await bot.register_commands()
 
+
 # we don't want to expose the bot's token if this script is imported
 if __name__ == "__main__":
-    with open('TOKEN', 'r') as f:
+    with open("TOKEN", "r") as f:
         _token = f.read().split()[0]  # split in case of any newlines or spaces
     bot.run(_token)
