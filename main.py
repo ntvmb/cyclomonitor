@@ -1,12 +1,19 @@
 """
-CycloMonitor - Discord bot that provides the latest information on TCs based on data from the US NRL's ATCF.
+CycloMonitor - ATCF and IBTrACS wrapper for Discord
 Copyright (c) 2023 Virtual Nate
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or any later version.
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+details.
 
-For those hosting a copy of this bot, you should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+For those hosting a copy of this bot, you should have received a copy of the
+GNU Affero General Public License along with this program. If not, see
+<https://www.gnu.org/licenses/>.
 """
 
 import discord
@@ -36,14 +43,21 @@ from sys import exit
 from locales import *
 
 copyright_notice = """
-CycloMonitor - Discord bot that provides the latest information on TCs based on data from the US NRL's ATCF.
+CycloMonitor - ATCF and IBTrACS wrapper for Discord
 Copyright (c) 2023 Virtual Nate
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or any later version.
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+details.
 
-For those hosting a copy of this bot, you should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+For those hosting a copy of this bot, you should have received a copy of the
+GNU Affero General Public License along with this program. If not, see
+<https://www.gnu.org/licenses/>.
 """
 logname = "bot.log"
 logging.basicConfig(
@@ -967,8 +981,11 @@ async def get_forecast(
     except Exception as e:
         await on_application_command_error(ctx, e)
     else:
-        with open(f"forecast.{ext}", "rb") as f:
-            await ctx.respond(file=discord.File(f))
+        if ext is None:
+            await ctx.respond(CM_CANNOT_FIND_STORM)
+        else:
+            with open(f"forecast.{ext}", "rb") as f:
+                await ctx.respond(file=discord.File(f))
 
 
 async def update_forecast_command():
