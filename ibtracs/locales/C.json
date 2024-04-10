@@ -21,5 +21,6 @@
     "ERROR_INVALID_BASIN": "Invalid basin: {0}",
     "ERROR_INVALID_SEASON": "season must be an integer",
     "ERROR_NO_PARAMS": "Please specify at least one of name, season, basin, atcf_id, or ibtracs_id.",
-    "IBTRACS_CONDS": "Conditions: {0}"
+    "IBTRACS_CONDS": "Conditions: {0}",
+    "IBTRACS_UPDATE_SUCCESS": "Finished updating the IBTrACS database."
 }

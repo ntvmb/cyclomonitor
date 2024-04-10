@@ -13,6 +13,8 @@ get_storm -- find TCs
 :copyright: (c) 2024 by Nathaniel Greenwell.
 """
 
+from __future__ import annotations
+
 import sqlite3
 import aiohttp
 import logging
@@ -240,10 +242,11 @@ async def update_db(mode="last3"):
             check=True,
         )
         os.unlink(f"{PATH}/ibtracs_all_NO_HEADING.csv")
+    _log.info(IBTRACS_UPDATE_SUCCESS)
 
 
 async def init_db():
-    """Equivalent to :mod:`update_db("full")`"""
+    """Equivalent to :func:`update_db("full")`"""
     await update_db("full")
 
 

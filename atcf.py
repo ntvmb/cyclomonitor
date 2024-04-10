@@ -47,6 +47,10 @@ movement_speeds = []
 movement_dirs = []
 log = logging.getLogger(__name__)
 
+# increase compatibility with python<3.11
+if not hasattr(datetime, "UTC"):
+    datetime.UTC = datetime.timezone.utc
+
 
 class ATCFError(Exception):
     """An Exception for general ATCF errors."""

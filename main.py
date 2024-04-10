@@ -72,9 +72,13 @@ INVITE = "https://discord.com/api/oauth2/authorize?client_id=1107462705004167230
 GITHUB = "https://github.com/ntvmb/cyclomonitor"
 languages = ["C", "en_US"]
 
+# increase compatibility with python<3.11
+if not hasattr(datetime, "UTC"):
+    datetime.UTC = datetime.timezone.utc
+
 try:
     from tendo import singleton
-except ModuleNotFoundError:
+except ImportError:
     logging.warning(LOG_TENDO_NOT_FOUND)
 
 try:
@@ -196,7 +200,7 @@ class monitor(commands.Cog):
         self.is_best_track_updating = True
         now = datetime.datetime.now(datetime.UTC)
         logging.info(LOG_IBTRACS_UPDATE_BEGIN)
-        if (now.month == 1 and now.day == 1) or _force_full:
+        if (now.month == 1 and now.day == 2) or _force_full:
             await ibtracs.update_db("full")
         else:
             await ibtracs.update_db("last3")

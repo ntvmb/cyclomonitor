@@ -30,6 +30,7 @@ ERROR_INVALID_BASIN = "ERROR_INVALID_BASIN"
 ERROR_INVALID_SEASON = "ERROR_INVALID_SEASON"
 ERROR_NO_PARAMS = "ERROR_NO_PARAMS"
 IBTRACS_CONDS = "IBTRACS_CONDS"
+IBTRACS_UPDATE_SUCCESS = "IBTRACS_UPDATE_SUCCESS"
 
 _log = _logging.getLogger(__name__)
 locale.setlocale(locale.LC_ALL, "")
@@ -48,8 +49,7 @@ def set_locale(lang="C"):
         with open(f"{_PATH}/C.json") as f:
             lc = json.load(f)
 
-    for k, v in lc.items():
-        globals()[k] = v
+    globals().update({k: v for k, v in lc.items()})
     return lang
 
 
