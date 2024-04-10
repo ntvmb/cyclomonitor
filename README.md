@@ -29,4 +29,4 @@ python3 main.py
 If you're using a virtual environment, ensure it is active before running the bot.  
 No feedback is given on the console. Instead, information is written to a file called `bot.log`.
 
-Note: This bot has not been tested on Python 3.12; only 3.11. If you encounter any issues on any version besides 3.11, please make sure the issue does not also occur on Python 3.11.
+Note: This bot is designed to work on Python 3.11+. If you encounter issues due to being on an older version, chances are I won't fix them.
