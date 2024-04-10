@@ -242,7 +242,7 @@ async def update_db(mode="last3"):
             check=True,
         )
         os.unlink(f"{PATH}/ibtracs_all_NO_HEADING.csv")
-    _log.info(IBTRACS_UPDATE_SUCCESS)
+    log.info(IBTRACS_UPDATE_SUCCESS)
 
 
 async def init_db():
