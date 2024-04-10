@@ -994,7 +994,11 @@ async def get_forecast(
 
 async def update_forecast_command():
     locale_init()
-    await bot.register_commands()
+    # bot.register_command() is unimplemented, so this implementation will
+    # have to do for now.
+    await bot.register_commands(
+        [get_forecast], method="individual", force=True, delete_existing=False
+    )
 
 
 # we don't want to expose the bot's token if this script is imported
