@@ -171,11 +171,11 @@ class monitor(commands.Cog):
             channel_id = server_vars.get("tracking_channel", guild.id)
             if channel_id is not None:
                 await update_guild(guild.id, channel_id)
-        await update_forecast_command()
+        # await update_forecast_command()
 
     @auto_update.error
     async def on_update_error(self, error):
-        await update_forecast_command()
+        # await update_forecast_command()
         if not isinstance(error, errors.LogRequested):
             logging.exception(CM_ERROR_WHILE_UPDATING)
         app = await self.bot.application_info()
@@ -584,7 +584,7 @@ async def update(ctx):
     else:
         await ctx.respond(ERROR_NO_TRACKING_CHANNEL, ephemeral=True)
     atcf.reset()
-    await update_forecast_command()
+    # await update_forecast_command()
 
 
 @bot.slash_command(name="update_alt", description=CM_UPDATE_ALT)
@@ -602,7 +602,7 @@ async def update_alt(ctx):
     else:
         await ctx.respond(ERROR_NO_TRACKING_CHANNEL, ephemeral=True)
     atcf.reset()
-    await update_forecast_command()
+    # await update_forecast_command()
 
 
 @bot.slash_command(name="set_basins", description=CM_SET_BASINS)
@@ -639,7 +639,7 @@ async def update_all(ctx):
         if channel_id is not None:
             await update_guild(guild.id, channel_id)
     await ctx.respond(CM_UPDATE_SUCCESS, ephemeral=True)
-    await update_forecast_command()
+    # await update_forecast_command()
 
 
 @bot.slash_command(name="update_all_alt", description=CM_UPDATE_ALL_ALT)
@@ -655,7 +655,7 @@ async def update_all_alt(ctx):
         if channel_id is not None:
             await update_guild(guild.id, channel_id)
     await ctx.respond(CM_UPDATE_SUCCESS, ephemeral=True)
-    await update_forecast_command()
+    # await update_forecast_command()
 
 
 @bot.slash_command(name="announce_all", description=CM_ANNOUNCE_ALL)
@@ -779,7 +779,7 @@ async def get_data(ctx):
             await ctx.respond(CM_GET_DATA_SUCCESS.format(content), ephemeral=True)
     except atcf.ATCFError as e:
         await ctx.respond(CM_GET_DATA_FAILED.format(e), ephemeral=True)
-    await update_forecast_command()
+    # await update_forecast_command()
 
 
 @bot.slash_command(name="get_data_alt", description=CM_GET_DATA_ALT)
@@ -795,7 +795,7 @@ async def get_data_alt(ctx):
             await ctx.respond(CM_GET_DATA_SUCCESS.format(content), ephemeral=True)
     except atcf.ATCFError as e:
         await ctx.respond(CM_GET_DATA_FAILED.format(e), ephemeral=True)
-    await update_forecast_command()
+    # await update_forecast_command()
 
 
 @bot.slash_command(name="atcf_reset", description=CM_ATCF_RESET)
@@ -972,6 +972,7 @@ async def set_language(
     await ctx.respond(CM_SET_LANGUAGE_SUCCESS.format(language))
 
 
+"""
 @bot.slash_command(name="get_forecast", description=CM_GET_FORECAST)
 async def get_forecast(
     ctx: discord.ApplicationContext,
@@ -990,8 +991,10 @@ async def get_forecast(
         else:
             with open(f"forecast.{ext}", "rb") as f:
                 await ctx.respond(file=discord.File(f))
+"""
 
 
+"""
 async def update_forecast_command():
     locale_init()
     # bot.register_command() is unimplemented, so this implementation will
@@ -999,7 +1002,7 @@ async def update_forecast_command():
     await bot.register_commands(
         [get_forecast], method="individual", force=True, delete_existing=False
     )
-
+"""
 
 # we don't want to expose the bot's token if this script is imported
 if __name__ == "__main__":
