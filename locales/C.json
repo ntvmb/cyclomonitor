@@ -152,5 +152,6 @@
     "ERROR_GET_FORECAST_NO_PARAMS": "Please pass one of name or atcf_id.",
     "CM_GET_FORECAST": "Get the official forecast for an active TC.",
     "CM_NO_ACTIVE_STORMS": "There are no active TCs.",
-    "CM_CANNOT_FIND_STORM": "I cannot find that storm."
+    "CM_CANNOT_FIND_STORM": "I cannot find that storm. Here's the current list of storms:\n{0}",
+    "CM_IS_AN_INVEST": "Cannot get the forecast of an invest."
 }

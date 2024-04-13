@@ -161,6 +161,7 @@ ERROR_GET_FORECAST_NO_PARAMS = "ERROR_GET_FORECAST_NO_PARAMS"
 CM_GET_FORECAST = "CM_GET_FORECAST"
 CM_NO_ACTIVE_STORMS = "CM_NO_ACTIVE_STORMS"
 CM_CANNOT_FIND_STORM = "CM_CANNOT_FIND_STORM"
+CM_IS_AN_INVEST = "CM_IS_AN_INVEST"
 
 _log = _logging.getLogger(__name__)
 locale.setlocale(locale.LC_ALL, "")
@@ -179,8 +180,7 @@ def set_locale(lang="C"):
         with open(f"{_PATH}/C.json") as f:
             lc = json.load(f)
 
-    for k, v in lc.items():
-        globals()[k] = v
+    globals().update({k: v for k, v in lc.items()})
     return lang
 
 

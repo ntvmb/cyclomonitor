@@ -972,13 +972,17 @@ async def set_language(
     await ctx.respond(CM_SET_LANGUAGE_SUCCESS.format(language))
 
 
-"""
 @bot.slash_command(name="get_forecast", description=CM_GET_FORECAST)
 async def get_forecast(
     ctx: discord.ApplicationContext,
-    name: Option(str, choices=[n for n in atcf.names if n != "INVEST"]),
+    name: Option(str),
 ):
     await ctx.defer()
+    name = name.upper()
+    if name == "INVEST":
+        await ctx.respond(CM_IS_AN_INVEST)
+        return
+
     try:
         ext = await atcf.get_forecast(name=name)
     except atcf.NoActiveStorms:
@@ -987,22 +991,15 @@ async def get_forecast(
         await on_application_command_error(ctx, e)
     else:
         if ext is None:
-            await ctx.respond(CM_CANNOT_FIND_STORM)
+            await ctx.respond(
+                CM_CANNOT_FIND_STORM.format(
+                    "\n".join([n for n in atcf.names if n != "INVEST"])
+                )
+            )
         else:
             with open(f"forecast.{ext}", "rb") as f:
                 await ctx.respond(file=discord.File(f))
-"""
 
-
-"""
-async def update_forecast_command():
-    locale_init()
-    # bot.register_command() is unimplemented, so this implementation will
-    # have to do for now.
-    await bot.register_commands(
-        [get_forecast], method="individual", force=True, delete_existing=False
-    )
-"""
 
 # we don't want to expose the bot's token if this script is imported
 if __name__ == "__main__":
