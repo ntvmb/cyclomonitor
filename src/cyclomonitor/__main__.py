@@ -26,21 +26,21 @@ from discord import (
 )
 from discord.ext import tasks, commands
 import math
-import server_vars
-import global_vars
-import atcf
-import errors
+from . import server_vars
+from . import global_vars
+from . import atcf
+from . import errors
 import datetime
 import logging
 import time
 import asyncio
-import ibtracs
+from . import ibtracs
 from types import GeneratorType
-from uptime import *
-from dir_calc import get_dir
+from .uptime import *
+from .dir_calc import get_dir
 from io import StringIO
 from sys import exit
-from locales import *
+from .locales import *
 
 copyright_notice = """
 CycloMonitor - ATCF and IBTrACS wrapper for Discord
@@ -84,11 +84,11 @@ except ImportError:
 try:
     # Prevent more than one instance from running at once
     me = singleton.SingleInstance()
+except NameError:
+    pass
 except singleton.SingleInstanceException:
     print(ERROR_ALREADY_RUNNING)
     exit(1)
-except NameError:
-    pass
 
 bot = discord.Bot(intents=discord.Intents.default())
 # it is ideal to put out the information as soon as possible, but there may be overrides

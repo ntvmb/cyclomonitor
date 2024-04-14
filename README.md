@@ -14,17 +14,18 @@ Clone this repository:
 git clone https://github.com/ntvmb/cyclomonitor.git
 cd cyclomonitor
 ```
-Install prerequisites:
+Install to your current environment:
 ```
-pip3 install --user -r requirements.txt
+pip install .
 ```
-Some Linux distributions may require you to [set up a virtual environment](https://docs.python.org/3/library/venv.html) to install the necessary packages.
+Optional: Install `tendo` for single instance checking: `pip install tendo`   
+Some Linux distributions may require you to [set up a virtual environment](https://docs.python.org/3/library/venv.html).
 
 Create a file called `TOKEN` and paste your bot's token into it.
 
 Run the bot:
 ```
-python3 main.py
+python3 -m cyclomonitor
 ```
 If you're using a virtual environment, ensure it is active before running the bot.  
 No feedback is given on the console. Instead, information is written to a file called `bot.log`.

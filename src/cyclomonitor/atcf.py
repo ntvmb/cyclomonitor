@@ -19,7 +19,7 @@ import asyncio
 import json
 import logging
 from itertools import zip_longest
-from locales import *
+from .locales import *
 
 # initalize variables
 # For whatever reason I have yet to discover, the domain `www.nrlmry.navy.mil`
