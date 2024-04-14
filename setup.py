@@ -46,7 +46,7 @@ setup(
     ],
     package_dir={"": "src"},
     packages=find_packages(where="src"),
-    python_requires=">=3.8, <4",
+    python_requires=">=3.8",
     install_requires=["py-cord>=2.5.0"],
     extras_require={
         "single-instance": ["tendo>=0.3.0"],

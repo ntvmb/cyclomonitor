@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["version"]
+name = "cyclomonitor"
+description = "Discord bot that helps you keep tabs on tropical cyclones."
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = [
+    "weather",
+    "discord",
+    "discord bot",
+    "discord-py",
+    "typhoon",
+    "hurricane",
+    "tropical cyclone",
+    "atcf",
+    "py-cord",
+    "ibtracs",
+]
+authors = [
+  {name = "Nathaniel Greenwell", email = "nategreenwell@live.com"}
+]
+maintainers = [
+  {name = "Nathaniel Greenwell", email = "nategreenwell@live.com"}
+]
+dependencies = [
+  "py-cord>=2.5.0",
+]
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Internet",
+    "Topic :: Science/Engineering",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+]
+
+[project.optional-dependencies]
+single-instance = ["tendo"]
+
+[project.urls]
+Repository = "https://github.com/ntvmb/cyclomonitor.git"
+Issues = "https://github.com/ntvmb/cyclomonitor/issues"
