@@ -1,4 +1,5 @@
 build
+dist
 cyclomonitor.code-workspace
 src/cyclomonitor/__pycache__/
 src/cyclomonitor/ibtracs/__pycache__/
