@@ -1,2 +1,5 @@
 include src/cyclomonitor/ibtracs/ibtracs_LAST3.sql src/cyclomonitor/ibtracs/ibtracs_ALL.sql
-recursive-exclude src/cyclomonitor.egg-info
+exclude .github/*
+recursive-include src/cyclomonitor/locales *.json
+recursive-include src/cyclomonitor/ibtracs/locales *.json
+recursive-exclude src/cyclomonitor.egg-info *
