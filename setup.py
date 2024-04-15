@@ -1,17 +1,16 @@
 from setuptools import setup, find_packages
 import pathlib
 
+__version__ = "2024.4.15"
+
 here = pathlib.Path(__file__).parent.resolve()
 
 # Get the long description from the README file
 long_description = (here / "README.md").read_text(encoding="utf-8")
 
-# Arguments marked as "Required" below must be included for upload to PyPI.
-# Fields marked as "Optional" may be commented out.
-
 setup(
     name="cyclomonitor",
-    version="2024.4.14",
+    version=__version__,
     description="Discord bot that helps you keep tabs on tropical cyclones.",
     long_description=long_description,
     long_description_content_type="text/markdown",

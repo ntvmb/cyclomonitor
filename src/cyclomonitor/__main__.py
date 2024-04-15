@@ -74,15 +74,6 @@ try:
 except ImportError:
     logging.warning(LOG_TENDO_NOT_FOUND)
 
-try:
-    # Prevent more than one instance from running at once
-    me = singleton.SingleInstance()
-except NameError:
-    pass
-except singleton.SingleInstanceException:
-    print(ERROR_ALREADY_RUNNING)
-    exit(1)
-
 bot = discord.Bot(intents=discord.Intents.default())
 # it is ideal to put out the information as soon as possible, but there may be overrides
 times = [
@@ -985,15 +976,80 @@ async def get_forecast(
                 await ctx.respond(file=discord.File(f))
 
 
-# we don't want to expose the bot's token if this script is imported
-if __name__ == "__main__":
+def main():
+    import argparse
+    import json
+
+    locale_init()
+    parser = argparse.ArgumentParser(
+        prog="cyclomonitor",
+        description=DESCRIPTION,
+        epilog=HELP_EPILOG.format(GITHUB),
+    )
+    parser.add_argument("-b", "--bot", help=HELP_BOT, action="store_true")
+    parser.add_argument("-t", "--token", help=HELP_TOKEN, default="")
+    parser.add_argument(
+        "-i", "--interactive", help=HELP_INTERACTIVE, action="store_true"
+    )
+    parser.add_argument("-l", "--log-file", help=HELP_LOG_FILE, default="")
+    parser.add_argument("-v", "--verbose", help=HELP_VERBOSE, action="store_true")
+    parser.add_argument("-c", "--config", help=HELP_CONFIG, default="")
+    args = parser.parse_args()
+    log_params = {}
+
+    if args.bot or args.token:
+        run_bot = True
+        # support the legacy TOKEN file
+        try:
+            with open("TOKEN", "r") as f:
+                _token = f.read().split()[0]  # split in case of any newlines or spaces
+        except FileNotFoundError:
+            pass
+
+        if args.token:
+            _token = args.token
+    else:
+        run_bot = False
+    if run_bot and args.interactive:
+        raise ValueError(ERROR_BOT_AND_INTERACTIVE)
+
+    if args.log_file:
+        log_params["filename"] = args.log_file
+        log_params["filemode"] = "a"
+
+    if args.config:
+        with open(args.config) as f:
+            config = json.load(f)
+        _token = config["token"]
+        if config.get("log_file") is not None:
+            log_params["filename"] = config["log_file"]
+            log_params["filemode"] = "a"
+            logging.captureWarnings(True)
+    if args.verbose:
+        log_params["level"] = logging.DEBUG
+    else:
+        log_params["level"] = logging.INFO
     logging.basicConfig(
-        filename=logname,
-        filemode="a",
         format="%(asctime)s.%(msecs)d %(name)s %(levelname)s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        level=logging.INFO,
+        **log_params,
     )
-    with open("TOKEN", "r") as f:
-        _token = f.read().split()[0]  # split in case of any newlines or spaces
-    bot.run(_token)
+    if args.bot:
+        try:
+            # Prevent more than one instance from running at once
+            me = singleton.SingleInstance()
+        except NameError:
+            pass
+        except singleton.SingleInstanceException:
+            exit(ERROR_ALREADY_RUNNING)
+        if not hasattr(locals(), "_token"):
+            raise ValueError(ERROR_NO_TOKEN)
+        bot.run(_token)
+        return
+    if args.interactive:
+        raise NotImplementedError()
+    parser.print_help()
+
+
+if __name__ == "__main__":
+    main()

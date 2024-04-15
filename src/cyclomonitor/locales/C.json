@@ -153,5 +153,15 @@
     "CM_GET_FORECAST": "Get the official forecast for an active TC.",
     "CM_NO_ACTIVE_STORMS": "There are no active TCs.",
     "CM_CANNOT_FIND_STORM": "I cannot find that storm. Here's the current list of storms:\n{0}",
-    "CM_IS_AN_INVEST": "Cannot get the forecast of an invest."
+    "CM_IS_AN_INVEST": "Cannot get the forecast of an invest.",
+    "DESCRIPTION": "Helps you keep tabs on tropical cyclones",
+    "HELP_EPILOG": "To report issues, go to {0}",
+    "HELP_BOT": "Run the bot",
+    "HELP_TOKEN": "Specify token (implies -b)",
+    "HELP_INTERACTIVE": "Run an interactive session",
+    "HELP_LOG_FILE": "File where the output is stored",
+    "HELP_VERBOSE": "Show debug messages",
+    "HELP_CONFIG": "Specify config file",
+    "ERROR_BOT_AND_INTERACTIVE": "Both -b and -i were specified.",
+    "ERROR_NO_TOKEN": "No token provided."
 }

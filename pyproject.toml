@@ -51,3 +51,4 @@ single-instance = ["tendo"]
 [project.urls]
 Repository = "https://github.com/ntvmb/cyclomonitor.git"
 Issues = "https://github.com/ntvmb/cyclomonitor/issues"
+Changelog = "https://github.com/ntvmb/cyclomonitor/blob/master/CHANGELOG.md"
