@@ -1042,9 +1042,10 @@ def main():
             pass
         except singleton.SingleInstanceException:
             exit(ERROR_ALREADY_RUNNING)
-        if not hasattr(locals(), "_token"):
+        try:
+            bot.run(_token)
+        except NameError:
             raise ValueError(ERROR_NO_TOKEN)
-        bot.run(_token)
         return
     if args.interactive:
         raise NotImplementedError()
