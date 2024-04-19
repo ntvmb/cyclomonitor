@@ -38,4 +38,10 @@ Windows users: You might want to replace `python3` with `python`.
 If you're using a virtual environment, ensure it is active before running the bot.  
 CycloMonitor logs to stdout by default. To log to a file, specify the parameter `-l LOGFILE`, where `LOGFILE` is the path to the log file.
 
+## Configuring the bot 
+See CONFIGURATION.md for details.
+
+## CLI
+Coming soon
+
 Supports Python 3.8+, but Python 3.11+ is recommended.

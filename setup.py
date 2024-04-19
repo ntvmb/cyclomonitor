@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import pathlib
 
-__version__ = "2024.4.15"
+__version__ = "2024.4.19"
 
 here = pathlib.Path(__file__).parent.resolve()
 

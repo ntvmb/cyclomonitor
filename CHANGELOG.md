@@ -1,5 +1,10 @@
 CycloMonitor changelog
 
+# 2024.4.19
+* Added: New configuration file parameters: `client_id`, `github`, `emojis`
+* Added: Docs for configuration file
+* **Changed: Client ID, GitHub link, and custom Emojis are no longer hardcoded.**
+
 # 2024.4.15
 * Added: command-line arguments
 * Added: support for configuration files

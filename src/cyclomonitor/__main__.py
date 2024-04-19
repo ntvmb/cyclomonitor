@@ -61,9 +61,10 @@ GNU Affero General Public License along with this program. If not, see
 """
 logname = "bot.log"
 # PLEASE CHANGE THESE LINKS IF YOU ARE FORKING THIS PROJECT.
-INVITE = "https://discord.com/api/oauth2/authorize?client_id=1107462705004167230&permissions=67496000&scope=bot"
-GITHUB = "https://github.com/ntvmb/cyclomonitor"
+INVITE = "https://discord.com/api/oauth2/authorize?client_id={0}&permissions=67496000&scope=bot"
+GITHUB = "GITHUB_LINK"
 languages = ["C", "en_US"]
+emojis = {}
 
 # increase compatibility with python<3.11
 if not hasattr(datetime, "UTC"):
@@ -212,10 +213,9 @@ class monitor(commands.Cog):
         self.is_best_track_updating = False
 
 
-# this function needs to be a coroutine since other coroutines are called
 async def update_guild(guild: int, to_channel: int):
-    set_locale(server_vars.get("lang", guild))
     """Given a guild ID and channel ID, post ATCF data."""
+    set_locale(server_vars.get("lang", guild))
     logging.info(LOG_UPDATE_GUILD.format(guild))
     channel = bot.get_channel(to_channel)
     enabled_basins = server_vars.get("basins", guild)
@@ -293,35 +293,35 @@ async def update_guild(guild: int, to_channel: int):
             if tc_class == "EX":
                 if not name == "INVEST":
                     tc_class = CLASS_PTC
-                emoji = "<:ex:1109994645431259187>"
+                emoji = emojis.get("ex")
             elif tc_class == "LO" or tc_class == "INVEST":
                 if not name == "INVEST":
                     tc_class = CLASS_PTC
-                emoji = "<:low:1109997033227558923>"
+                emoji = emojis.get("low")
             elif tc_class == "DB" or tc_class == "WV":
                 if not name == "INVEST":
                     tc_class = CLASS_RL
-                emoji = "<:remnants:1109994646932836386>"
+                emoji = emojis.get("remnants")
             elif wind < 35:
                 if not (tc_class == "SD" or name == "INVEST"):
                     # ignored if invest in case of autoflagging
                     # ATCF will autoflag a system to be a TD once it has attained 1-minute sustained winds of between 23 and 33 kt
                     tc_class = CLASS_TD
-                    emoji = "<:td:1109994651169079297>"
+                    emoji = emojis.get("td")
                 elif name == "INVEST" and not tc_class == "SD":
-                    emoji = "<:low:1109997033227558923>"
+                    emoji = emojis.get("low")
                 else:
                     tc_class = CLASS_SD
-                    emoji = "<:sd:1109994648300163142>"
+                    emoji = emojis.get("sd")
             elif wind > 34 and wind < 65:
                 if not (tc_class == "SS" or name == "INVEST"):
                     tc_class = CLASS_TS
-                    emoji = "<:ts:1109994652368650310>"
+                    emoji = emojis.get("ts")
                 elif name == "INVEST" and not tc_class == "SS":
-                    emoji = "<:low:1109997033227558923>"
+                    emoji = emojis.get("low")
                 else:
                     tc_class = CLASS_SS
-                    emoji = "<:ss:1109994649654935563>"
+                    emoji = emojis.get("ss")
             else:
                 # determine the term to use based on the basin
                 # we assume at this point that the system is either a TC or extratropical
@@ -341,23 +341,25 @@ async def update_guild(guild: int, to_channel: int):
                 # for custom emoji to work, the bot needs to be in the server it's from
                 # you also need the emoji's ID
                 if wind < 85:
-                    emoji = "<:cat1:1109994357257420902>"
+                    emoji = emojis.get("cat1")
                 elif wind > 84 and wind < 100:
-                    emoji = "<:cat2:1109994593895862364>"
+                    emoji = emojis.get("cat2")
                 elif wind > 99 and wind < 115:
-                    emoji = "<:cat3:1109994641094357024>"
+                    emoji = emojis.get("cat3")
                 elif wind > 114 and wind < 140:
-                    emoji = "<:cat4:1109994643057295401>"
+                    emoji = emojis.get("cat4")
                 elif wind > 139 and wind < 155:
-                    emoji = "<:cat5:1109994644386893864>"
+                    emoji = emojis.get("cat5")
                 elif wind > 154 and wind < 170:
-                    emoji = "<:cat5intense:1111376977664954470>"
+                    emoji = emojis.get("cat5intense")
                 else:
-                    emoji = "<:cat5veryintense:1111378049448026126>"
+                    emoji = emojis.get("cat5veryintense")
             if name == "INVEST":
                 name = display_name = cyc_id
             else:
                 display_name = f"{cyc_id} ({name})"
+            if emoji is None:
+                emoji = ":cyclone:"
             # update TC records
             if current_TC_record is not None:
                 if (wind > int(current_TC_record[5])) or (
@@ -980,6 +982,7 @@ def main():
     import argparse
     import json
 
+    global GITHUB, INVITE
     locale_init()
     parser = argparse.ArgumentParser(
         prog="cyclomonitor",
@@ -1025,6 +1028,12 @@ def main():
             log_params["filename"] = config["log_file"]
             log_params["filemode"] = "a"
             logging.captureWarnings(True)
+        if config.get("github") is not None:
+            GITHUB = config["github"]
+        if config.get("client_id") is not None:
+            INVITE = INVITE.format(config["client_id"])
+        if isinstance(config.get("emojis"), dict):
+            emojis.update(config["emojis"])
     if args.verbose:
         log_params["level"] = logging.DEBUG
     else:
