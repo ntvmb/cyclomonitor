@@ -68,6 +68,13 @@ To run CycloMonitor with a configuration file:
 }
 ```
 
+`server`: An invite to a Discord server dedicated to the bot. This is shown in the `/server` command.
+```json
+{
+    "server": "https://discord.gg/xBHESnJYz5"
+}
+```
+
 Full example:
 ```json
 {
@@ -90,6 +97,7 @@ Full example:
         "cat5": "<:cat5:1109994644386893864>",
         "cat5intense": "<:cat5intense:1111376977664954470>",
         "cat5veryintense": "<:cat5veryintense:1111378049448026126>"
-    }
+    },
+    "server": "https://discord.gg/xBHESnJYz5"
 }
 ```

@@ -63,6 +63,7 @@ logname = "bot.log"
 # PLEASE CHANGE THESE LINKS IF YOU ARE FORKING THIS PROJECT.
 INVITE = "https://discord.com/api/oauth2/authorize?client_id={0}&permissions=67496000&scope=bot"
 GITHUB = "GITHUB_LINK"
+SERVER = "SERVER_INVITE"
 languages = ["C", "en_US"]
 emojis = {}
 
@@ -978,6 +979,11 @@ async def get_forecast(
                 await ctx.respond(file=discord.File(f))
 
 
+@bot.slash_command(name="server", description=CM_SERVER)
+async def server(ctx: discord.ApplicationContext):
+    await ctx.respond(SERVER)
+
+
 def main():
     import argparse
     import json
@@ -1032,6 +1038,8 @@ def main():
             GITHUB = config["github"]
         if config.get("client_id") is not None:
             INVITE = INVITE.format(config["client_id"])
+        if config.get("server") is not None:
+            SERVER = config["server"]
         if isinstance(config.get("emojis"), dict):
             emojis.update(config["emojis"])
     if args.verbose:

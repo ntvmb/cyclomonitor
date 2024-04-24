@@ -163,5 +163,6 @@
     "HELP_VERBOSE": "Show debug messages",
     "HELP_CONFIG": "Specify config file",
     "ERROR_BOT_AND_INTERACTIVE": "Both -b and -i were specified.",
-    "ERROR_NO_TOKEN": "No token provided."
+    "ERROR_NO_TOKEN": "No token provided.",
+    "CM_SERVER": "Join the bot's official Discord server!"
 }

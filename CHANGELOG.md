@@ -1,5 +1,9 @@
 CycloMonitor changelog
 
+# 2024.4.24
+* Added: `/server` command
+    * Set the invite through the `server` config parameter
+
 # 2024.4.19
 * Added: New configuration file parameters: `client_id`, `github`, `emojis`
 * Added: Docs for configuration file
