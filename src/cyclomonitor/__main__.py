@@ -981,7 +981,7 @@ async def get_forecast(
 
 @bot.slash_command(name="server", description=CM_SERVER)
 async def server(ctx: discord.ApplicationContext):
-    await ctx.respond(SERVER)
+    await ctx.respond(SERVER, ephemeral=True)
 
 
 def main():
