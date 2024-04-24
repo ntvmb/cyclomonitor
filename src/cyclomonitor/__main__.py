@@ -988,7 +988,7 @@ def main():
     import argparse
     import json
 
-    global GITHUB, INVITE
+    global GITHUB, INVITE, SERVER
     locale_init()
     parser = argparse.ArgumentParser(
         prog="cyclomonitor",
