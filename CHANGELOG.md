@@ -1,5 +1,9 @@
 CycloMonitor changelog
 
+# 2024.5.12
+* Added: Command-line interface
+    * Run the CLI with `python3 -m cyclomonitor.cli`. Type `help` for commands
+
 # 2024.4.24
 * Added: `/server` command
     * Set the invite through the `server` config parameter
