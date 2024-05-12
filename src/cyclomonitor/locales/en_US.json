@@ -38,7 +38,7 @@
     "CLASS_CY": "CYCLONE",
     "LOG_NEW_RECORD": "Looks like we have a new record!",
     "LOG_NO_RECORD": "No TC record found. Creating record...",
-    "CM_STORM_INFO": "# {0} {1} {2}\nAs of <t:{3}:f>, the center of {4} was located near {5}, {6}. Maximum 1-minute sustained winds were {7} kt ({8} mph/{9} kph) and the minimum central pressure was {10} mb. Present movement was {11}.",
+    "CM_STORM_INFO": "# {0} {1} {2}\nAs of {3}, the center of {4} was located near {5}, {6}. Maximum 1-minute sustained winds were {7} kt ({8} mph/{9} kph) and the minimum central pressure was {10} mb. Present movement was {11}.",
     "LOG_GUILD_UNAVAILABLE": "Guild {0} is unavailable. Skipping this guild.",
     "CM_NO_STORMS": "No TCs or areas of interest active at this time.",
     "NO_AUTO_UPDATE": "Auto update task is not running. Please let the owner know so they can fix this.",
@@ -172,5 +172,8 @@
     "LOG_BOT_CONFIG_AND_INTERACTIVE": "Bot configuration file specified but running interactively.",
     "CLI_SYMBOL_NOT_FOUND": "Can't recognize {0} as a command or variable.",
     "CLI_INTERNAL_ERROR": "An internal error occurred.",
-    "CLI_PARSER_REPR": "Internal parser"
+    "CLI_PARSER_REPR": "Internal parser",
+    "CLI_HELP": "CycloMonitor CLI help\n\nFor a list of commands, type `commands`. Type `help command` for help on\ncommand. Note: CLI is in early development; expect missing or broken features.\n\nGeneral usage:\nYou can execute commands and get the values of constants (creating variables\ncurrently isn't supported).\nExample command usage:\ncyclomonitor> echo hello world!\nExample attribute access:\ncyclomonitor> KT_TO_MPH\n(Currently, variables can't be used as command arguments, as the parser will\ntreat it as a string.)\n\nArguments are separated by spaces. Keyword arguments can be defined using\n`arg=value`. Example keyword argument usage:\ncyclomonitor> get_storm name=Patricia season=2015",
+    "CLI_MISSING_DOCSTRING": "Missing docstring",
+    "CLI_IS_A_VAR": "{0} is a variable."
 }

@@ -393,7 +393,7 @@ async def update_guild(guild: int, to_channel: int):
                             emoji,
                             tc_class,
                             display_name,
-                            timestamp,
+                            f"<t:{timestamp}:f>",
                             name,
                             lat,
                             long,

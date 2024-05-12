@@ -1,7 +1,7 @@
 """CycloMonitor CLI"""
 
 import asyncio
-import sys
+from sys import exit
 from .atcf import *
 from . import errors
 from .ibtracs import *
@@ -29,6 +29,7 @@ GNU Affero General Public License along with this program. If not, see
 KT_TO_MPH = 1.15077945
 KT_TO_KMH = 1.852
 # fmt: off
+# Callable attributes that probably shouldn't be called from the CLI
 PRIVATE_ATTRS = [
     "zip_longest", "ATCFError", "WrongData", "NoActiveStorms", "main",
     "dataclass", "Iterable", "Storm", "Query", "query_group", "varchar",
@@ -39,11 +40,16 @@ PRIVATE_ATTRS = [
 
 
 class Internal:
+    """
+    Methods internal to the CLI.
+    """
+
     def __repr__(self):
         return CLI_PARSER_REPR
 
     @staticmethod
     def parse(line: str):
+        # TODO: Support quoted arguments
         if not line:
             return ""
         args = line.split()
@@ -131,6 +137,8 @@ class Internal:
                     out = out_temp.getvalue()
                     out_temp.close()
                 return out
+            elif isinstance(command, str):
+                return command
             else:
                 return repr(command)
         else:
@@ -138,6 +146,7 @@ class Internal:
 
 
 def echo(*args):
+    """Print a string to the screen."""
     out = StringIO()
     for arg in args:
         out.write(f"{arg} ")
@@ -145,10 +154,12 @@ def echo(*args):
 
 
 def copyright(*args):
+    """Get the copyright notice."""
     return COPYRIGHT_NOTICE
 
 
 def commands(*args):
+    """Get the list of commands usable in the CLI."""
     return (
         key
         for key, value in globals().items()
@@ -156,18 +167,46 @@ def commands(*args):
     )
 
 
+def help(command_name="", *args):
+    """Stop it. Get some help."""
+    if command_name:
+        try:
+            command = globals()[command_name]
+            if isinstance(command, Callable) and command_name not in PRIVATE_ATTRS:
+                if command.__doc__ is not None:
+                    return command.__doc__
+                else:
+                    return CLI_MISSING_DOCSTRING
+            elif not isinstance(command, Callable):
+                return CLI_IS_A_VAR.format(command_name)
+            else:
+                return CLI_SYMBOL_NOT_FOUND.format(command_name)
+        except (AttributeError, KeyError):
+            return CLI_SYMBOL_NOT_FOUND.format(command_name)
+    else:
+        return CLI_HELP
+
+
 def cli():
+    """The main function of the CLI."""
     print(CLI_STARTUP)
     while True:
         try:
-            request = input("> ")
+            request = input("cyclomonitor> ")
         except EOFError:
             print("\n", end="")
             break
+        except KeyboardInterrupt:
+            print("\n", end="")
+            continue
         except Exception:
             logging.exception(CLI_INTERNAL_ERROR)
             continue
-        out = Internal.parse(request)
+        try:
+            out = Internal.parse(request)
+        except Exception:
+            logging.exception(CLI_INTERNAL_ERROR)
+            continue
         if out:
             if out.endswith("\n"):
                 print(out, end="")
@@ -176,5 +215,10 @@ def cli():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        format="%(asctime)s.%(msecs)d %(name)s %(levelname)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level=logging.WARNING,
+    )
     locale_init()
     cli()
