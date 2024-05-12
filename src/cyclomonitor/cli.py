@@ -1,6 +1,7 @@
 """CycloMonitor CLI"""
 
 import asyncio
+import datetime
 from sys import exit
 from .atcf import *
 from . import errors
@@ -42,6 +43,7 @@ PRIVATE_ATTRS = [
 class Internal:
     """
     Methods internal to the CLI.
+    All methods in this class (except for __repr__) are static.
     """
 
     def __repr__(self):
@@ -115,7 +117,7 @@ class Internal:
                     return ""
                 # almost certainly the output of ibtracs.get_storm
                 elif isinstance(out, Storm):
-                    if out.name == "Not_Named":
+                    if out.name == "NOT_NAMED":
                         header = CM_UNNAMED_STORM.format(out.nature())
                     else:
                         header = f"{out.nature()} {out.name}"
@@ -143,6 +145,49 @@ class Internal:
                 return repr(command)
         else:
             return CLI_SYMBOL_NOT_FOUND.format(args[0])
+
+    @staticmethod
+    def get_nature_name(name, wind, tc_class):
+        # see cyclomonitor.update_guild for more info
+        if name == "INVEST" and (not (tc_class == "SD" or tc_class == "SS")):
+            tc_class = CLASS_AOI
+        if tc_class == "EX":
+            if not name == "INVEST":
+                tc_class = CLASS_PTC
+        elif tc_class == "LO" or tc_class == "INVEST":
+            if not name == "INVEST":
+                tc_class = CLASS_PTC
+        elif tc_class == "DB" or tc_class == "WV":
+            if not name == "INVEST":
+                tc_class = CLASS_RL
+        elif wind < 35:
+            if not (tc_class == "SD" or name == "INVEST"):
+                tc_class = CLASS_TD
+            elif name == "INVEST" and not tc_class == "SD":
+                pass
+            else:
+                tc_class = CLASS_SD
+        elif wind > 34 and wind < 65:
+            if not (tc_class == "SS" or name == "INVEST"):
+                tc_class = CLASS_TS
+            elif name == "INVEST" and not tc_class == "SS":
+                pass
+            else:
+                tc_class = CLASS_SS
+        else:
+            if basin == "ATL" or basin == "EPAC" or basin == "CPAC":
+                if wind < 100:
+                    tc_class = CLASS_HU
+                else:
+                    tc_class = CLASS_MH
+            elif basin == "WPAC":
+                if wind < 130:
+                    tc_class = CLASS_TY
+                else:
+                    tc_class = CLASS_STY
+            else:
+                tc_class = CLASS_CY
+        return tc_class
 
 
 def echo(*args):
@@ -185,6 +230,69 @@ def help(command_name="", *args):
             return CLI_SYMBOL_NOT_FOUND.format(command_name)
     else:
         return CLI_HELP
+
+
+def present(name_or_id: str):
+    """Present a TC in the ATCF data.
+
+    Parameters:
+    name_or_id - The TC name or identifier.
+    """
+    if not (cyclones and names):
+        raise NoActiveStorms
+    name_or_id = name_or_id.upper()
+    if name_or_id in names:
+        name = name_or_id
+        index = names.index(name_or_id)
+        id = cyclones[index]
+    elif name_or_id in cyclones:
+        id = name_or_id
+        index = cyclones.index(name_or_id)
+        name = names[index]
+    else:
+        raise ValueError(CLI_STORM_NOT_FOUND.format(name_or_id))
+
+    tc_class = tc_classes[index]
+    wind = winds[index]
+    tc_class = Internal.get_nature_name(name, wind, tc_class)
+    timestamp = (
+        datetime.datetime.fromtimestamp(timestamps[index])
+        .replace(tzinfo=datetime.timezone.utc)
+        .isoformat()
+    )
+    if name == "INVEST":
+        name = display_name = id
+    else:
+        display_name = f"{id} ({name})"
+    lat = lats[index]
+    long = longs[index]
+    mph = round(wind * KT_TO_MPH / 5) * 5
+    kmh = round(wind * KT_TO_KMH / 5) * 5
+    pres = pressures[index]
+    movement_speed = movement_speeds[index]
+    movement_dir = get_dir(movement_dirs[index])
+    if (not movement_dir) or (movement_speed) < 0:
+        movement_str = NOT_AVAILABLE
+    else:
+        movement_mph = movement_speed * KT_TO_MPH
+        movement_kmh = movement_speed * KT_TO_KMH
+        movement_str = STORM_MOVEMENT.format(
+            movement_dir, movement_speed, movement_mph, movement_kmh
+        )
+    return CM_STORM_INFO.format(
+        "",
+        tc_class,
+        display_name,
+        timestamp,
+        name,
+        lat,
+        long,
+        wind,
+        mph,
+        kmh,
+        pres,
+        movement_str,
+    )
 
 
 def cli():

@@ -1,24 +1,31 @@
 # CycloMonitor
-Discord bot that automatically updates active TC information based on data from the ATCF.
+Command-line tool and Discord bot which presents ATCF and Best Track data.
 
 Dependencies:  
-* py-cord
 * aiohttp (provided by py-cord)
-* tendo (Optional, for single-instance checking)
+* py-cord (Optional, for running the bot)
+* tendo (Optional, for running the bot)
 ### Disclaimer
-No party involved with CycloMonitor should make any claim that this bot is intended to replace tropical cyclone advisories/warnings issued by your local RSMC or TCWC. If you need more detailed information than what is provided by the bot, see your local RSMC or TCWC website for forecasts, potential land impacts, or other relevant information.
+No party involved with CycloMonitor should make any claim that this program is intended to replace tropical cyclone advisories/warnings issued by your local RSMC or TCWC. If you need more detailed information than what is provided by the program, see your local RSMC or TCWC website for forecasts, potential land impacts, or other relevant information.
 
-## Running the bot
+## Running interactively
 Install the package:
 ```
 pip install cyclomonitor
 ```
+Start an interactive session:
+`python3 -m cyclomonitor -i` or `python3 -m cyclomonitor.cli`
+
+## Running the bot
+Install the package with everything needed to run the bot:
+```
+pip install cyclomonitor[bot]
+```
 If you cloned the GitHub repository, you might want to install the package in dev mode:
 ```
 cd cyclomonitor
-pip install -e .
-```
-Optional: Install `tendo` for single instance checking: `pip install tendo` or `pip install cyclomonitor[single-instance]`  
+pip install -e .[bot]
+``` 
 Some Linux distributions may require you to [set up a virtual environment](https://docs.python.org/3/library/venv.html).
 
 Until I get the project to use absolute paths, you'll probably want to create a separate directory to store its data:
