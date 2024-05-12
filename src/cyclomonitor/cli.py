@@ -1,7 +1,5 @@
 """CycloMonitor CLI"""
 
-from __future__ import annotations
-
 import asyncio
 import sys
 from .atcf import *
@@ -12,8 +10,32 @@ from .locales import *
 from io import StringIO
 from typing import Callable, Awaitable, Generator
 
+COPYRIGHT_NOTICE = """\
+CycloMonitor - ATCF and IBTrACS wrapper for Discord
+Copyright (c) 2023 Virtual Nate
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+details.
+
+For those hosting a copy of this bot, you should have received a copy of the
+GNU Affero General Public License along with this program. If not, see
+<https://www.gnu.org/licenses/>."""
 KT_TO_MPH = 1.15077945
 KT_TO_KMH = 1.852
+# fmt: off
+PRIVATE_ATTRS = [
+    "zip_longest", "ATCFError", "WrongData", "NoActiveStorms", "main",
+    "dataclass", "Iterable", "Storm", "Query", "query_group", "varchar",
+    "numeric", "bit", "StringIO", "Callable", "Awaitable", "Generator",
+    "Internal",
+]
+# fmt: on
 
 
 class Internal:
@@ -61,14 +83,14 @@ class Internal:
                 except ValueError:
                     pass
 
-        if args[0] in globals():
+        if args[0] in globals() and args[0] not in PRIVATE_ATTRS:
             command = globals()[args[0]]
             if isinstance(command, Callable):
                 try:
                     out = command(*args[1:], **kwargs)
                 except Exception as e:
                     if e.args:
-                        return e
+                        return f"{type(e).__name__}: {e}"
                     else:
                         return type(e).__name__
 
@@ -77,7 +99,7 @@ class Internal:
                         out = asyncio.run(out)
                     except Exception as e:
                         if e.args:
-                            return e
+                            return f"{type(e).__name__}: {e}"
                         else:
                             return type(e).__name__
 
@@ -103,8 +125,9 @@ class Internal:
                     )
                 elif isinstance(out, Generator):
                     out_temp = StringIO()
-                    out_temp.write(CM_MULTIPLE_STORMS)
-                    out_temp.writelines([f"\n{s}" for s in out])
+                    if args[0] == "get_storm":
+                        out_temp.write(CM_MULTIPLE_STORMS)
+                    out_temp.writelines([f"{s}\n" for s in out])
                     out = out_temp.getvalue()
                     out_temp.close()
                 return out
@@ -121,6 +144,18 @@ def echo(*args):
     return out.getvalue()
 
 
+def copyright(*args):
+    return COPYRIGHT_NOTICE
+
+
+def commands(*args):
+    return (
+        key
+        for key, value in globals().items()
+        if isinstance(value, (Callable, Awaitable)) and key not in PRIVATE_ATTRS
+    )
+
+
 def cli():
     print(CLI_STARTUP)
     while True:
@@ -134,7 +169,10 @@ def cli():
             continue
         out = Internal.parse(request)
         if out:
-            print(out)
+            if out.endswith("\n"):
+                print(out, end="")
+            else:
+                print(out)
 
 
 if __name__ == "__main__":
