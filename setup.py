@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import pathlib
 
-__version__ = "2024.4.24"
+__version__ = "2024.5.12"
 
 here = pathlib.Path(__file__).parent.resolve()
 
@@ -46,9 +46,9 @@ setup(
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     python_requires=">=3.8",
-    install_requires=["py-cord>=2.5.0"],
+    install_requires=["aiohttp>=3.6.0"],
     extras_require={
-        "single-instance": ["tendo>=0.3.0"],
+        "bot": ["py-cord>=2.5.0", "tendo>=0.3.0"],
     },
     project_urls={
         "Bug Reports": "https://github.com/ntvmb/cyclomonitor/issues",
