@@ -164,5 +164,13 @@
     "HELP_CONFIG": "Specify config file",
     "ERROR_BOT_AND_INTERACTIVE": "Both -b and -i were specified.",
     "ERROR_NO_TOKEN": "No token provided.",
-    "CM_SERVER": "Join the bot's official Discord server!"
+    "CM_SERVER": "Join the bot's official Discord server!",
+    "ERROR_PYCORD_MISSING": "py-cord is required to run the bot.",
+    "ERROR_TENDO_MISSING": "tendo is required to run the bot.",
+    "CLI_STARTUP": "CycloMonitor CLI\nThis program is free software. For details type `copyright`.\n\nThis program comes with ABSOLUTELY NO WARRANTY, to the extent\npermitted by applicable law.",
+    "ERROR_LOG_FILE_AND_INTERACTIVE": "Cannot log to a file and run interactively.",
+    "LOG_BOT_CONFIG_AND_INTERACTIVE": "Bot configuration file specified but running interactively.",
+    "CLI_SYMBOL_NOT_FOUND": "Can't recognize {0} as a command or variable.",
+    "CLI_INTERNAL_ERROR": "An internal error occurred.",
+    "CLI_PARSER_REPR": "Internal parser"
 }
