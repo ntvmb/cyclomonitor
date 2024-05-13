@@ -3,7 +3,7 @@
 import asyncio
 import datetime
 import re
-from sys import exit
+from sys import exit, version_info
 from .atcf import *
 from . import errors
 from .ibtracs import *
@@ -39,7 +39,7 @@ PRIVATE_ATTRS = {
     "dataclass", "Iterable", "Storm", "Query", "query_group", "varchar",
     "numeric", "bit", "StringIO", "Callable", "Awaitable", "Generator",
     "Internal", "PRIVATE_ATTRS", "log", "asyncio", "datetime", "logging",
-    "aiohttp", "json", "sqlite3", "subprocess", "io", "re",
+    "aiohttp", "json", "sqlite3", "subprocess", "io", "re", "version_info"
 }
 PRIVATE_ATTRS.update(
     attr for attr in dir() if not isinstance(globals()[attr], Callable)
@@ -50,8 +50,9 @@ CONSTANTS = {
     "CONSTANTS", "PRIVATE_ATTRS", "COPYRIGHT_NOTICE", "KT_TO_MPH", "KT_TO_KMH",
     "cyclones", "names", "timestamps", "lats", "longs", "basins", "winds",
     "pressures", "tc_classes", "lats_real", "longs_real", "movement_speeds",
-    "movement_dirs"
+    "movement_dirs", "None", "True", "False",
 }
+log = logging.getLogger(__name__)
 cd = chdir
 # fmt: on
 
@@ -276,7 +277,7 @@ def set_var(var_name: str, value, *args):
         return CLI_ILLEGAL_NAME
 
     if args:
-        value += f" {" ".join(args)}"
+        value += f" {' '.join(args)}"
 
     globals()[var_name] = value
     return value
@@ -355,6 +356,10 @@ def present(name_or_id: str):
 def cli():
     """The main function of the CLI."""
     print(CLI_STARTUP)
+    if version_info.major == 3 and version_info.minor < 11:
+        log.warning(
+            CLI_OLD_PY_VERSION.format(f"{version_info.major}.{version_info.minor}")
+        )
     while True:
         try:
             request = input("cyclomonitor> ")
