@@ -14,7 +14,8 @@ Install the package:
 pip install cyclomonitor
 ```
 Start an interactive session:
-`python3 -m cyclomonitor -i` or `python3 -m cyclomonitor.cli`
+`python3 -m cyclomonitor -i` or `python3 -m cyclomonitor.cli`  
+When running interactively, type `help` to see available commands.
 
 ## Running the bot
 Install the package with everything needed to run the bot:
@@ -47,8 +48,5 @@ CycloMonitor logs to stdout by default. To log to a file, specify the parameter 
 
 ## Configuring the bot 
 See CONFIGURATION.md for details.
-
-## CLI
-Coming soon
 
 Supports Python 3.8+, but Python 3.11+ is recommended.

@@ -278,6 +278,14 @@ async def get_data_alt():
 
 
 async def get_forecast(*, name="", cid=""):
+    """Download the official forecast image for an active TC.
+    Returns the extension of the downloaded image file.
+
+    Keyword arguments:
+    name -- Search by name
+    cid -- Search by identifier
+    You must specify either name or cid. name has priority over cid.
+    """
     if not (cyclones and names):
         raise NoActiveStorms()
     if not (name or cid):

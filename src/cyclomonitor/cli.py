@@ -6,6 +6,7 @@ from sys import exit
 from .atcf import *
 from . import errors
 from .ibtracs import *
+from . import locales
 from .dir_calc import get_dir
 from .locales import *
 from io import StringIO
@@ -30,12 +31,17 @@ GNU Affero General Public License along with this program. If not, see
 KT_TO_MPH = 1.15077945
 KT_TO_KMH = 1.852
 # fmt: off
-# Callable attributes that probably shouldn't be called from the CLI
+# Attributes that probably shouldn't be accessed from the CLI
 PRIVATE_ATTRS = [
     "zip_longest", "ATCFError", "WrongData", "NoActiveStorms", "main",
     "dataclass", "Iterable", "Storm", "Query", "query_group", "varchar",
     "numeric", "bit", "StringIO", "Callable", "Awaitable", "Generator",
-    "Internal",
+    "Internal", "PRIVATE_ATTRS",
+] + [
+    attr for attr in dir(locales) if attr.isupper()
+]
+CONSTANTS = [
+    "CONSTANTS", "PRIVATE_ATTRS", "COPYRIGHT_NOTICE", "KT_TO_MPH", "KT_TO_KMH",
 ]
 # fmt: on
 
@@ -67,6 +73,9 @@ class Internal:
             args.remove(arg)
 
         for index, arg in enumerate(args):
+            if arg.startswith("$"):
+                args[index] = globals().get(arg[1:], "")
+
             if index == 0:
                 continue
             if "." in arg:
@@ -80,6 +89,9 @@ class Internal:
                 except ValueError:
                     pass
         for k, v in kwargs.items():
+            if v.startswith("$"):
+                kwargs[k] = globals().get(v[1:], "")
+
             if "." in v:
                 try:
                     kwargs[k] = float(v)
@@ -192,10 +204,7 @@ class Internal:
 
 def echo(*args):
     """Print a string to the screen."""
-    out = StringIO()
-    for arg in args:
-        out.write(f"{arg} ")
-    return out.getvalue()
+    return " ".join(args)
 
 
 def copyright(*args):
@@ -230,6 +239,28 @@ def help(command_name="", *args):
             return CLI_SYMBOL_NOT_FOUND.format(command_name)
     else:
         return CLI_HELP
+
+
+def set_var(var_name: str, value, *args):
+    """Create var_name if it doesn't exist and set it to value.
+
+    Paramaters:
+    var_name - The name of the variable
+    value - The value to set this variable to
+
+    Precondition: var_name does not refer to a constant, command, or private
+    attribute.
+    """
+    if var_name in CONSTANTS:
+        return CLI_IS_A_CONSTANT
+    elif var_name in PRIVATE_ATTRS or isinstance(globals().get(var_name), Callable):
+        return CLI_ILLEGAL_NAME
+
+    if args:
+        value += f" {" ".join(args)}"
+
+    globals()[var_name] = value
+    return value
 
 
 def present(name_or_id: str):
