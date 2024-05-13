@@ -2,6 +2,7 @@
 
 import asyncio
 import datetime
+import re
 from sys import exit
 from .atcf import *
 from . import errors
@@ -10,6 +11,7 @@ from . import locales
 from .dir_calc import get_dir
 from .locales import *
 from io import StringIO
+from os import chdir  # for your convenience
 from typing import Callable, Awaitable, Generator
 
 COPYRIGHT_NOTICE = """\
@@ -32,17 +34,25 @@ KT_TO_MPH = 1.15077945
 KT_TO_KMH = 1.852
 # fmt: off
 # Attributes that probably shouldn't be accessed from the CLI
-PRIVATE_ATTRS = [
+PRIVATE_ATTRS = {
     "zip_longest", "ATCFError", "WrongData", "NoActiveStorms", "main",
     "dataclass", "Iterable", "Storm", "Query", "query_group", "varchar",
     "numeric", "bit", "StringIO", "Callable", "Awaitable", "Generator",
-    "Internal", "PRIVATE_ATTRS",
-] + [
-    attr for attr in dir(locales) if attr.isupper()
-]
-CONSTANTS = [
+    "Internal", "PRIVATE_ATTRS", "log", "asyncio", "datetime", "logging",
+    "aiohttp", "json", "sqlite3", "subprocess", "io", "re",
+}
+PRIVATE_ATTRS.update(
+    attr for attr in dir() if not isinstance(globals()[attr], Callable)
+)
+PRIVATE_ATTRS.remove("KT_TO_MPH")
+PRIVATE_ATTRS.remove("KT_TO_KMH")
+CONSTANTS = {
     "CONSTANTS", "PRIVATE_ATTRS", "COPYRIGHT_NOTICE", "KT_TO_MPH", "KT_TO_KMH",
-]
+    "cyclones", "names", "timestamps", "lats", "longs", "basins", "winds",
+    "pressures", "tc_classes", "lats_real", "longs_real", "movement_speeds",
+    "movement_dirs"
+}
+cd = chdir
 # fmt: on
 
 
@@ -217,7 +227,16 @@ def commands(*args):
     return (
         key
         for key, value in globals().items()
-        if isinstance(value, (Callable, Awaitable)) and key not in PRIVATE_ATTRS
+        if isinstance(value, Callable) and key not in PRIVATE_ATTRS
+    )
+
+
+def attrs(*args):
+    """Get the list of variables. Includes constants."""
+    return (
+        key
+        for key, value in globals().items()
+        if not (isinstance(value, Callable) or key in PRIVATE_ATTRS)
     )
 
 
@@ -261,6 +280,13 @@ def set_var(var_name: str, value, *args):
 
     globals()[var_name] = value
     return value
+
+
+def active_storms(*args):
+    """Get the list of active storms.
+    Format is ID NAME.
+    """
+    return (f"{id} {name}" for id, name in zip(cyclones, names))
 
 
 def present(name_or_id: str):
