@@ -164,4 +164,3 @@ CREATE TABLE AllBestTrack(
   ,STORM_SPEED      INTEGER
   ,STORM_DIR        INTEGER
 );
-.import ibtracs_all_NO_HEADING.csv AllBestTrack --csv

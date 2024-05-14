@@ -164,4 +164,3 @@ CREATE TABLE LastThreeYears(
   ,STORM_SPEED      INTEGER
   ,STORM_DIR        INTEGER
 );
-.import ibtracs_last3_NO_HEADING.csv LastThreeYears --csv

@@ -39,7 +39,8 @@ PRIVATE_ATTRS = {
     "dataclass", "Iterable", "Storm", "Query", "query_group", "varchar",
     "numeric", "bit", "StringIO", "Callable", "Awaitable", "Generator",
     "Internal", "PRIVATE_ATTRS", "log", "asyncio", "datetime", "logging",
-    "aiohttp", "json", "sqlite3", "subprocess", "io", "re", "version_info"
+    "aiohttp", "json", "sqlite3", "subprocess", "io", "re", "version_info",
+    "Literal", "Tuple",
 }
 PRIVATE_ATTRS.update(
     attr for attr in dir() if not isinstance(globals()[attr], Callable)

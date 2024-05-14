@@ -13,8 +13,6 @@ get_storm -- find TCs
 :copyright: (c) 2024 by Nathaniel Greenwell.
 """
 
-from __future__ import annotations
-
 import sqlite3
 import aiohttp
 import logging
@@ -22,7 +20,7 @@ import os
 import subprocess
 import io
 from dataclasses import dataclass
-from collections.abc import Iterable
+from typing import Iterable, Literal, Tuple
 from .locales import *
 
 log = logging.getLogger(__name__)
@@ -139,7 +137,7 @@ class Query:
         return QUERY_REPR.format(self=self)
 
 
-def query_group(queries: Iterable[tuple[str, int, str, str]]):
+def query_group(queries: Iterable[Tuple[str, int, str, str]]):
     """Yield Query objects.
 
     Arguments:
@@ -168,6 +166,37 @@ def _remove_headers(csv: os.PathLike | str):
     finally:
         # free up RAM
         del data, lines
+
+
+def _csv_import(table: Literal["LastThreeYears", "AllBestTrack"]):
+    """(Internal) Import CSV into table."""
+    with sqlite3.connect(DB) as con:
+        cur = con.cursor()
+        if table == "LastThreeYears":
+            cur.executescript(open(f"{PATH}/ibtracs_LAST3.sql").read())
+            filename = "ibtracs_last3_NO_HEADING.csv"
+        else:
+            cur.executescript(open(f"{PATH}/ibtracs_ALL.sql").read())
+            filename = "ibtracs_all_NO_HEADING.csv"
+
+        with open(f"{PATH}/{filename}") as data:
+            for line in data:
+                values = line.split(",")
+                for i, v in enumerate(values):
+                    if "." in v:
+                        try:
+                            values[i] = float(v)
+                        except ValueError:
+                            pass
+                    else:
+                        try:
+                            values[i] = int(v)
+                        except ValueError:
+                            pass
+                cur.execute(
+                    f"INSERT INTO {table} VALUES({'?, ' * (len(values) - 1)}?)", values
+                )
+        con.commit()
 
 
 async def update_db(mode="last3"):
@@ -210,12 +239,7 @@ async def update_db(mode="last3"):
                 # because we may be working with a large amount of data.
                 del r
         _remove_headers(f"{PATH}/{csv}")
-        subprocess.run(
-            ["sqlite3", DB],
-            input=f".cd {PATH}\n.read ibtracs_LAST3.sql",
-            encoding="UTF-8",
-            check=True,
-        )
+        _csv_import("LastThreeYears")
         os.unlink(f"{PATH}/ibtracs_last3_NO_HEADING.csv")
     if get_all:
         csv = "ibtracs_all.csv"
@@ -235,12 +259,7 @@ async def update_db(mode="last3"):
                 # because we may be working with a large amount of data.
                 del r
         _remove_headers(f"{PATH}/{csv}")
-        subprocess.run(
-            ["sqlite3", DB],
-            input=f".cd {PATH}\n.read ibtracs_ALL.sql",
-            encoding="UTF-8",
-            check=True,
-        )
+        _csv_import("AllBestTrack")
         os.unlink(f"{PATH}/ibtracs_all_NO_HEADING.csv")
     log.info(IBTRACS_UPDATE_SUCCESS)
 
