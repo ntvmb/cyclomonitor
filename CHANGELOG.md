@@ -1,5 +1,11 @@
 CycloMonitor changelog
 
+# 2024.5.14
+* Added: CLI now supports user-defined variables
+* Fix: CLI now works on Python <3.11
+    * Known issue: ATCF commands can break ([#3](https://github.com/ntvmb/cyclomonitor/issues/3))
+* Changed: ibtracs no longer depends on the `sqlite3` shell
+
 # 2024.5.12
 * Added: Command-line interface
     * Run the CLI with `python3 -m cyclomonitor.cli`. Type `help` for commands
