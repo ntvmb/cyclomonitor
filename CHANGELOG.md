@@ -1,5 +1,8 @@
 CycloMonitor changelog
 
+# 2024.5.15
+* Fix: Fix [#3](https://github.com/ntvmb/cyclomonitor/issues/3)
+
 # 2024.5.14
 * Added: CLI now supports user-defined variables
 * Fix: CLI now works on Python <3.11
