@@ -79,19 +79,19 @@ def reset():
     """Reset ATCF data."""
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures
     global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
-    cyclones = []
-    names = []
-    timestamps = []
-    lats = []
-    longs = []
-    basins = []
-    winds = []
-    pressures = []
-    tc_classes = []
-    lats_real = []
-    longs_real = []
-    movement_speeds = []
-    movement_dirs = []
+    cyclones.clear()
+    names.clear()
+    timestamps.clear()
+    lats.clear()
+    longs.clear()
+    basins.clear()
+    winds.clear()
+    pressures.clear()
+    tc_classes.clear()
+    lats_real.clear()
+    longs_real.clear()
+    movement_speeds.clear()
+    movement_dirs.clear()
 
 
 def parse_storm(line: str, *, mode="std"):
