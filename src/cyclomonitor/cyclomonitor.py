@@ -61,6 +61,7 @@ times = [
 log = logging.getLogger(__name__)
 languages = ["C", "en_US"]
 emojis = {}
+most_recent_dissipation = None
 
 
 class monitor(commands.Cog):
@@ -76,18 +77,24 @@ class monitor(commands.Cog):
         logging.info(LOG_MONITOR_STOP)
         self.auto_update.cancel()
 
-    def should_suppress(self, prev_timestamps: list):
+    @staticmethod
+    def should_suppress(prev_timestamps: dict):
         """Compare two lists of timestamps and return a boolean."""
         suppressed = []
-        for index, (cyclone, timestamp, p_timestamp) in enumerate(
-            zip(atcf.cyclones, atcf.timestamps, prev_timestamps)
+        for index, (cyclone, timestamp) in enumerate(
+            zip(atcf.cyclones, atcf.timestamps)
         ):
-            try:
-                # will this system request for a suppression?
-                suppressed.append(p_timestamp >= timestamp)
-            except IndexError:
-                suppressed.append(False)
-            logging.debug(LOG_TIMESTAMP_COMPARISON.format(cyclone, suppressed[index]))
+            if cyclone == most_recent_dissipation:
+                suppressed.append(True)
+            else:
+                try:
+                    # will this system request for a suppression?
+                    suppressed.append(prev_timestamps[cyclone] >= timestamp)
+                except LookupError:
+                    suppressed.append(False)
+                logging.debug(
+                    LOG_TIMESTAMP_COMPARISON.format(cyclone, suppressed[index])
+                )
         if not atcf.cyclones:
             suppressed.append(False)
         # only suppress an automatic update if all active systems requested a suppression
@@ -99,7 +106,9 @@ class monitor(commands.Cog):
     @tasks.loop(time=times)
     async def auto_update(self):
         logging.info(LOG_AUTO_UPDATE_BEGIN)
-        prev_timestamps = atcf.timestamps.copy()
+        prev_timestamps = {
+            cid: time for cid, time in zip(atcf.cyclones, atcf.timestamps)
+        }
         try:
             await atcf.get_data()
         except atcf.ATCFError as e:
@@ -107,6 +116,9 @@ class monitor(commands.Cog):
             return
         self.last_update = math.floor(time.time())
         global_vars.write("last_update", self.last_update)
+        for cid in prev_timestamps:
+            if cid not in atcf.cyclones:
+                most_recent_dissipation = cid
         if self.should_suppress(prev_timestamps):
             # try alternate source
             logging.warn(LOG_SUPPRESSED)
