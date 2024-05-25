@@ -45,6 +45,7 @@ lats_real = []
 longs_real = []
 movement_speeds = []
 movement_dirs = []
+long_cids = []
 log = logging.getLogger(__name__)
 
 # increase compatibility with python<3.11
@@ -77,8 +78,6 @@ async def main():
 
 def reset():
     """Reset ATCF data."""
-    global cyclones, names, timestamps, lats, longs, basins, winds, pressures
-    global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
     cyclones.clear()
     names.clear()
     timestamps.clear()
@@ -92,6 +91,7 @@ def reset():
     longs_real.clear()
     movement_speeds.clear()
     movement_dirs.clear()
+    long_cids.clear()
 
 
 def parse_storm(line: str, *, mode="std"):
@@ -131,6 +131,7 @@ def parse_storm(line: str, *, mode="std"):
             tc_classes.append(storm[7])
             movement_speeds.append(float(storm[10]))
             movement_dirs.append(float(storm[11]))
+            long_cids.append(storm[0])
     except (AssertionError, LookupError, ValueError) as e:
         # remove the faulty entry
         faulty_entry = len(cyclones) - 1
@@ -207,6 +208,7 @@ def load():
                         tc_classes.append(storm[7])
                         movement_speeds.append(float(storm[10]))
                         movement_dirs.append(float(storm[11]))
+                        long_cids.append(storm[0])
                         break
                 else:  # no break
                     raise ATCFError(ERROR_HDYGH)
@@ -304,16 +306,10 @@ async def get_forecast(*, name="", cid=""):
         except ValueError:
             return None
 
-    with open("interp_sector_file", "r") as f:
-        lines = f.readlines()
-        atcf_id = lines[index].split()[0].upper()
-
-    basin = atcf_id[:2]  # 2-char basin identifier
-    num = atcf_id[2:4]  # 2-digit storm number
-    jtwc_year = atcf_id[6:]  # Last 2 digits of the year
-    if basin == "AL":
-        nhc_basin = "AT"
-    elif basin == "EP" or basin == "CP":
+    basin = basins[index][:2]  # 2-char basin identifier
+    num = cyclones[index][:2]  # 2-digit storm number
+    jtwc_year = long_cids[index][6:]  # Last 2 digits of the year
+    if basin == "AT" or basin == "EP" or basin == "CP":
         nhc_basin = basin
     else:
         nhc_basin = None
