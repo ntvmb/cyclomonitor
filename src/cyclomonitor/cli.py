@@ -357,10 +357,6 @@ def present(name_or_id: str):
 def cli():
     """The main function of the CLI."""
     print(CLI_STARTUP)
-    if version_info.major == 3 and version_info.minor < 11:
-        log.warning(
-            CLI_OLD_PY_VERSION.format(f"{version_info.major}.{version_info.minor}")
-        )
     while True:
         try:
             request = input("cyclomonitor> ")
