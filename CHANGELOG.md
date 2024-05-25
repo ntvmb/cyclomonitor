@@ -1,5 +1,10 @@
 CycloMonitor changelog
 
+# 2024.5.25
+* Change: Try to accomodate for recent dissipations when considering whether or not to suppress an automatic update
+* Fix: Fix desynced lists in the get_forecast command when the last update was from the main source
+* Removed: Warning message on CLI startup removed since it's not longer relevant
+
 # 2024.5.15
 * Fix: Fix [#3](https://github.com/ntvmb/cyclomonitor/issues/3)
 
