@@ -171,7 +171,7 @@ class Internal:
             return CLI_SYMBOL_NOT_FOUND.format(args[0])
 
     @staticmethod
-    def get_nature_name(name, wind, tc_class):
+    def get_nature_name(name, wind, tc_class, basin):
         # see cyclomonitor.update_guild for more info
         if name == "INVEST" and (not (tc_class == "SD" or tc_class == "SS")):
             tc_class = CLASS_AOI
@@ -313,7 +313,8 @@ def present(name_or_id: str):
 
     tc_class = tc_classes[index]
     wind = winds[index]
-    tc_class = Internal.get_nature_name(name, wind, tc_class)
+    basin = basins[index]
+    tc_class = Internal.get_nature_name(name, wind, tc_class, basin)
     timestamp = (
         datetime.datetime.fromtimestamp(timestamps[index])
         .replace(tzinfo=datetime.timezone.utc)
