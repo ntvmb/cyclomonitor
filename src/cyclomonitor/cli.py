@@ -3,7 +3,7 @@
 import asyncio
 import datetime
 import re
-from sys import exit, version_info
+from sys import exit, version_info, stdin, stdout, stderr
 from .atcf import *
 from . import errors
 from .ibtracs import *
@@ -40,7 +40,7 @@ PRIVATE_ATTRS = {
     "numeric", "bit", "StringIO", "Callable", "Awaitable", "Generator",
     "Internal", "PRIVATE_ATTRS", "log", "asyncio", "datetime", "logging",
     "aiohttp", "json", "sqlite3", "subprocess", "io", "re", "version_info",
-    "Literal", "Tuple",
+    "Literal", "Tuple", "isatty",
 }
 PRIVATE_ATTRS.update(
     attr for attr in dir() if not isinstance(globals()[attr], Callable)
@@ -357,16 +357,22 @@ def present(name_or_id: str):
 
 def cli():
     """The main function of the CLI."""
-    print(CLI_STARTUP)
+    if stdin.isatty():
+        stderr.write(CLI_STARTUP)
     while True:
+        if stdin.isatty():
+            stderr.write("cyclomonitor> ")
         try:
-            request = input("cyclomonitor> ")
+            request = input()
         except EOFError:
-            print("\n", end="")
+            if stdin.isatty():
+                print("\n", end="")
             break
         except KeyboardInterrupt:
             print("\n", end="")
-            continue
+            if stdin.isatty():
+                continue
+            break
         except Exception:
             logging.exception(CLI_INTERNAL_ERROR)
             continue
