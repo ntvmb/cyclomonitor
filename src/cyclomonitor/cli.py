@@ -149,8 +149,8 @@ class Internal:
                         header,
                         out.season,
                         out.basin,
-                        out.peak_winds,
-                        out.peak_pres,
+                        f"{out.peak_winds} kt",
+                        f"{out.peak_pres} mb",
                         out.time_of_peak,
                         out.atcf_id,
                         out.best_track_id,
@@ -369,8 +369,8 @@ def cli():
                 print("\n", end="")
             break
         except KeyboardInterrupt:
-            print("\n", end="")
             if stdin.isatty():
+                print("\n", end="")
                 continue
             break
         except Exception:

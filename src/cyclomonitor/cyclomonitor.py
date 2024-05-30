@@ -171,7 +171,7 @@ class monitor(commands.Cog):
         self.is_best_track_updating = True
         now = datetime.datetime.now(datetime.UTC)
         logging.info(LOG_IBTRACS_UPDATE_BEGIN)
-        if (now.month == 1 and now.day == 2) or _force_full:
+        if (now.day == 2) or _force_full:
             await ibtracs.update_db("full")
         else:
             await ibtracs.update_db("last3")

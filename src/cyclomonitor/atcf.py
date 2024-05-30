@@ -59,13 +59,13 @@ class ATCFError(Exception):
     pass
 
 
-class WrongData(Exception):
+class WrongData(ATCFError):
     """An Exception for incorrectly formatted data."""
 
     pass
 
 
-class NoActiveStorms(Exception):
+class NoActiveStorms(ATCFError):
     """Used by get_forecast() to signal that no storms are active."""
 
     pass
