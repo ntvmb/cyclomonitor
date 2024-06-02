@@ -46,7 +46,7 @@ setup(
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     python_requires=">=3.8",
-    install_requires=["aiohttp>=3.6.0"],
+    install_requires=["aiohttp>=3.6.0", "aiofiles>=23.2.1"],
     extras_require={
         "bot": ["py-cord>=2.5.0", "tendo>=0.3.0"],
     },

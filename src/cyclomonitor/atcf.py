@@ -18,6 +18,7 @@ import aiohttp
 import asyncio
 import json
 import logging
+import aiofiles
 from itertools import zip_longest
 from .locales import *
 
@@ -180,6 +181,7 @@ def parse_storm(line: str, *, mode="std"):
         raise WrongData(ATCF_WRONG_DATA.format(line)) from e
 
 
+# Do NOT make this function a coroutine.
 def load():
     """Load ATCF data saved on disk."""
     try:
@@ -231,11 +233,11 @@ async def get_data():
     ) as session:
         try:
             async with session.get(URL, ssl=False) as r:
-                with open("atcf_sector_file", "w") as f:
-                    f.write(await r.text())
+                async with aiofiles.open("atcf_sector_file", "w") as f:
+                    await f.write(await r.text())
             async with session.get(URL_INTERP, ssl=False) as r:
-                with open("interp_sector_file", "w") as f:
-                    f.write(await r.text())
+                async with aiofiles.open("interp_sector_file", "w") as f:
+                    await f.write(await r.text())
         except Exception as e:
             log.warning(ATCF_USING_MAIN_FAILED.format(e))
             await get_data_alt()
@@ -263,13 +265,13 @@ async def get_data_alt():
         except aiohttp.ClientError as exc:
             raise ATCFError(ERROR_ATCF_GET_DATA_FAILED) from exc
 
-    with open("atcf_sector_file", "w") as f:
+    async with aiofiles.open("atcf_sector_file", "w") as f:
         for d in tc_list:
-            f.write(d["atcf_sector_file"] + "\n")
+            await f.write(d["atcf_sector_file"] + "\n")
 
-    with open("interp_sector_file", "w") as f:
+    async with aiofiles.open("interp_sector_file", "w") as f:
         for d in tc_list:
-            f.write(d["interp_sector_file"] + "\n")
+            await f.write(d["interp_sector_file"] + "\n")
 
     for d in tc_list:
         try:
@@ -328,8 +330,8 @@ async def get_forecast(*, name="", cid=""):
         async with coro as r:
             # assuming everything is good, this will either be png or gif
             ext = r.content_type.split("/")[1]
-            with open(f"forecast.{ext}", "wb") as img:
-                img.write(await r.read())
+            async with aiofiles.open(f"forecast.{ext}", "wb") as img:
+                await img.write(await r.read())
     return ext
 
 

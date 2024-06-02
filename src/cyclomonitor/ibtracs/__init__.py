@@ -15,12 +15,13 @@ get_storm -- find TCs
 
 import sqlite3
 import aiohttp
+import aiofiles
 import logging
 import os
 import subprocess
 import io
 from dataclasses import dataclass
-from typing import Iterable, Literal, Tuple
+from typing import Iterable, Literal, Tuple, Union
 from .locales import *
 
 log = logging.getLogger(__name__)
@@ -147,18 +148,18 @@ def query_group(queries: Iterable[Tuple[str, int, str, str]]):
         yield Query(sid, season, basin, name)
 
 
-def _remove_headers(csv: os.PathLike | str):
+async def _remove_headers(csv: Union[os.PathLike, str]):
     if isinstance(csv, os.PathLike):
         csv = os.fspath(csv)
     csv_name = os.path.splitext(csv)[0]
-    with open(csv) as f:
-        lines = f.readlines()
+    async with aiofiles.open(csv) as f:
+        lines = await f.readlines()
         data = lines[2:]
     new_name = f"{csv_name}_NO_HEADING.csv"
     try:
-        with open(new_name, "w") as f:
-            f.writelines(data)
-    # There has to be an except or finally clause before an else clause.
+        async with aiofiles.open(new_name, "w") as f:
+            await f.writelines(data)
+    # There has to be an except clause before an else clause.
     except OSError:
         pass
     else:
@@ -168,19 +169,21 @@ def _remove_headers(csv: os.PathLike | str):
         del data, lines
 
 
-def _csv_import(table: Literal["LastThreeYears", "AllBestTrack"]):
+async def _csv_import(table: Literal["LastThreeYears", "AllBestTrack"]):
     """(Internal) Import CSV into table."""
     with sqlite3.connect(DB) as con:
         cur = con.cursor()
         if table == "LastThreeYears":
-            cur.executescript(open(f"{PATH}/ibtracs_LAST3.sql").read())
+            async with aiofiles.open(f"{PATH}/ibtracs_LAST3.sql") as f:
+                cur.executescript(await f.read())
             filename = "ibtracs_last3_NO_HEADING.csv"
         else:
-            cur.executescript(open(f"{PATH}/ibtracs_ALL.sql").read())
+            async with aiofiles.open(f"{PATH}/ibtracs_ALL.sql") as f:
+                cur.executescript(await f.read())
             filename = "ibtracs_all_NO_HEADING.csv"
 
-        with open(f"{PATH}/{filename}") as data:
-            for line in data:
+        async with aiofiles.open(f"{PATH}/{filename}") as data:
+            async for line in data:
                 values = line.split(",")
                 for i, v in enumerate(values):
                     if "." in v:
@@ -226,10 +229,10 @@ async def update_db(mode="last3"):
         async with aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(connect=10), raise_for_status=True
         ) as session:
+            r = await session.get(f"{BASE_URI}/ibtracs.last3years.list.v04r00.csv")
             try:
-                r = await session.get(f"{BASE_URI}/ibtracs.last3years.list.v04r00.csv")
-                with open(f"{PATH}/{csv}", "w") as f:
-                    f.write(await r.text())
+                async with aiofiles.open(f"{PATH}/{csv}", "w") as f:
+                    await f.write(await r.text())
             except Exception:
                 log.exception(ERROR_IBTRACS_UPDATE_FAILURE)
                 raise
@@ -238,18 +241,18 @@ async def update_db(mode="last3"):
                 # We want to delete the resource afterwards to save RAM
                 # because we may be working with a large amount of data.
                 del r
-        _remove_headers(f"{PATH}/{csv}")
-        _csv_import("LastThreeYears")
+        await _remove_headers(f"{PATH}/{csv}")
+        await _csv_import("LastThreeYears")
         os.unlink(f"{PATH}/ibtracs_last3_NO_HEADING.csv")
     if get_all:
         csv = "ibtracs_all.csv"
         async with aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(connect=10), raise_for_status=True
         ) as session:
+            r = await session.get(f"{BASE_URI}/ibtracs.ALL.list.v04r00.csv")
             try:
-                r = await session.get(f"{BASE_URI}/ibtracs.ALL.list.v04r00.csv")
-                with open(f"{PATH}/{csv}", "w") as f:
-                    f.write(await r.text())
+                async with aiofiles.open(f"{PATH}/{csv}", "w") as f:
+                    await f.write(await r.text())
             except Exception:
                 log.exception(ERROR_IBTRACS_UPDATE_FAILURE)
                 raise
@@ -258,8 +261,8 @@ async def update_db(mode="last3"):
                 # We want to delete the resource afterwards to save RAM
                 # because we may be working with a large amount of data.
                 del r
-        _remove_headers(f"{PATH}/{csv}")
-        _csv_import("AllBestTrack")
+        await _remove_headers(f"{PATH}/{csv}")
+        await _csv_import("AllBestTrack")
         os.unlink(f"{PATH}/ibtracs_all_NO_HEADING.csv")
     log.info(IBTRACS_UPDATE_SUCCESS)
 

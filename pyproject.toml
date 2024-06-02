@@ -28,6 +28,7 @@ maintainers = [
 ]
 dependencies = [
   "aiohttp>=3.6.0",
+  "aiofiles>=23.2.1",
 ]
 requires-python = ">=3.8"
 classifiers = [
