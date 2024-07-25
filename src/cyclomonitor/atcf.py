@@ -311,6 +311,7 @@ async def get_forecast(*, name="", cid=""):
     basin = basins[index][:2]  # 2-char basin identifier
     num = cyclones[index][:2]  # 2-digit storm number
     jtwc_year = long_cids[index][6:]  # Last 2 digits of the year
+    atcf_id = long_cids[index].upper()
     if basin == "AT" or basin == "EP" or basin == "CP":
         nhc_basin = basin
     else:
