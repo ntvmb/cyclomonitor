@@ -71,11 +71,14 @@ class monitor(commands.Cog):
         self.bot = bot
         self.last_update = global_vars.get("last_update")
         self.last_ibtracs_update = global_vars.get("last_ibtracs_update")
+        self.auto_update.start()
+        self.daily_ibtracs_update.start()
         self.is_best_track_updating = False
 
     def cog_unload(self):
         logging.info(LOG_MONITOR_STOP)
         self.auto_update.cancel()
+        self.daily_ibtracs_update.cancel()
 
     @staticmethod
     def should_suppress(prev_timestamps: dict):
@@ -199,6 +202,19 @@ class monitor(commands.Cog):
             else:
                 break
         self.is_best_track_updating = False
+
+    async def am_i_late(self):
+        # force an automatic update if last_update is not set or more than 6
+        # hours have passed since the last update
+        if (self.last_update is None) or (
+            math.floor(time.time()) - self.last_update > 21600
+        ):
+            await self.auto_update()
+        # same idea as above but for IBTrACS data, and the limit is 24 hours
+        if (self.last_ibtracs_update is None) or (
+            math.floor(time.time()) - self.last_ibtracs_update > 86400
+        ):
+            await self.daily_ibtracs_update()
 
 
 async def update_guild(guild: int, to_channel: int):
@@ -436,36 +452,31 @@ async def update_guild(guild: int, to_channel: int):
 
 @bot.event
 async def on_ready():
+    global cog
     locale_init()
     await bot.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching, name=CM_WATCHING)
     )
     logging.info(LOG_READY.format(bot.user))
     global_vars.write("guild_count", len(bot.guilds))
-    global cog
-    # stop the monitor if it is already running
-    # this is to prevent a situation where there are two instances of a task running in some edge cases
-    try:
-        cog.auto_update.cancel()
-        cog.daily_ibtracs_update().cancel()
-    except NameError:
-        cog = monitor(bot)
+    cog = monitor(bot)
+    bot.add_cog(cog)
+    await cog.am_i_late()
 
-    # keep trying to start the auto-update tasks until they have started
-    while cog.auto_update.next_iteration is None:
-        cog.auto_update.start()
-        await asyncio.sleep(1)
-    while cog.daily_ibtracs_update.next_iteration is None:
-        cog.daily_ibtracs_update.start()
-        await asyncio.sleep(1)
-    # force an automatic update if last_update is not set or more than 6 hours have passed since the last update
-    if (cog.last_update is None) or (math.floor(time.time()) - cog.last_update > 21600):
-        await cog.auto_update()
-    # same idea as above but for IBTrACS data, and the limit is 24 hours
-    if (cog.last_ibtracs_update is None) or (
-        math.floor(time.time()) - cog.last_ibtracs_update > 86400
-    ):
-        await cog.daily_ibtracs_update()
+
+@bot.event
+async def on_disconnect():
+    bot.remove_cog("monitor")
+
+
+@bot.event
+async def on_resumed():
+    global cog
+    if bot.get_cog("monitor") is None and bot.is_ready():
+        # The cog is already closed; it's safe to overwrite the old cog
+        cog = monitor(bot)
+        bot.add_cog(cog)
+        await cog.am_i_late()
 
 
 @bot.event
