@@ -948,10 +948,14 @@ async def set_language(
     await ctx.respond(CM_SET_LANGUAGE_SUCCESS.format(language))
 
 
+async def storms(ctx: discord.AutocompleteContext):
+    return [n for n in atcf.names if n != "INVEST"]
+
+
 @bot.slash_command(name="get_forecast", description=CM_GET_FORECAST)
 async def get_forecast(
     ctx: discord.ApplicationContext,
-    name: Option(str),
+    name: Option(str, autocomplete=discord.utils.basic_autocomplete(storms)),
 ):
     await ctx.defer()
     name = name.upper()
