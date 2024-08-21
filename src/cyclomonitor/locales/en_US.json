@@ -179,5 +179,7 @@
     "CLI_STORM_NOT_FOUND": "Cannot find a TC with name or ID {0}.",
     "CLI_IS_A_CONSTANT": "Cannot edit the value of a constant!",
     "CLI_ILLEGAL_NAME": "Illegal variable name!",
-    "CLI_OLD_PY_VERSION": "Detected Python {0}! Python 3.11+ is recommended as some commands can break on older versions!"
+    "CLI_OLD_PY_VERSION": "Detected Python {0}! Python 3.11+ is recommended as some commands can break on older versions!",
+    "NEARLY_STATIONARY": "nearly stationary",
+    "STATIONARY": "stationary"
 }

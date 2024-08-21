@@ -261,6 +261,10 @@ async def update_guild(guild: int, to_channel: int):
             c_dir = get_dir(movement_dir)
             if (not c_dir) or (movement_speed < 0):
                 movement_str = NOT_AVAILABLE
+            elif movement_speed < 2:
+                movement_str = NEARLY_STATIONARY
+            elif movement_speed == 0:
+                movement_str = STATIONARY
             else:
                 movement_mph = movement_speed * KT_TO_MPH
                 movement_kph = movement_speed * KT_TO_KMH
