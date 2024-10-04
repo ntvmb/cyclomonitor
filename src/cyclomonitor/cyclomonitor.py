@@ -215,7 +215,8 @@ class monitor(commands.Cog):
         if (self.last_ibtracs_update is None) or (
             math.floor(time.time()) - self.last_ibtracs_update > 86400
         ):
-            await self.daily_ibtracs_update()
+            pass
+            # await self.daily_ibtracs_update()
 
     async def wait_for_ibtracs(self):
         while self.is_best_track_updating:
