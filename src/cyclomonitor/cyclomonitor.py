@@ -72,7 +72,8 @@ class monitor(commands.Cog):
         self.last_update = global_vars.get("last_update")
         self.last_ibtracs_update = global_vars.get("last_ibtracs_update")
         self.auto_update.start()
-        self.daily_ibtracs_update.start()
+        # IBTrACS updates have been disabled for now due to a data outage.
+        # self.daily_ibtracs_update.start()
         self.is_best_track_updating = False
 
     def cog_unload(self):
@@ -215,6 +216,10 @@ class monitor(commands.Cog):
             math.floor(time.time()) - self.last_ibtracs_update > 86400
         ):
             await self.daily_ibtracs_update()
+
+    async def wait_for_ibtracs(self):
+        while self.is_best_track_updating:
+            await asyncio.sleep(1)
 
 
 async def update_guild(guild: int, to_channel: int):
@@ -470,7 +475,16 @@ async def on_ready():
 
 @bot.event
 async def on_disconnect():
-    bot.remove_cog("monitor")
+    cog: monitor = bot.get_cog("monitor")
+    if not (cog is None or cog.is_best_track_updating):
+        bot.remove_cog("monitor")
+    if cog is not None and cog.is_best_track_updating:
+        try:
+            await asyncio.wait_for(cog.wait_for_ibtracs(), timeout=60.0)
+        finally:
+            bot.remove_cog("monitor")
+            if bot.is_ready():
+                bot.add_cog(monitor())
 
 
 @bot.event

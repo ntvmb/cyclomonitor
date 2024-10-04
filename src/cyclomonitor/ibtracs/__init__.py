@@ -86,7 +86,7 @@ class Storm:
         return CLASS_TC
 
     def is_subtropical(self, *, table="LastThreeYears"):
-        """Determinte whether or not this TC was subtropical at peak."""
+        """Determine whether or not this TC was subtropical at peak."""
         if not self.peak_winds:
             return False
         for v in self.__dict__.values():
@@ -240,6 +240,7 @@ async def update_db(mode="last3"):
                 # Calling close does not delete the object.
                 # We want to delete the resource afterwards to save RAM
                 # because we may be working with a large amount of data.
+                r.close()
                 del r
         await _remove_headers(f"{PATH}/{csv}")
         await _csv_import("LastThreeYears")
