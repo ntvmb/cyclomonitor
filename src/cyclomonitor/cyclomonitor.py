@@ -72,8 +72,7 @@ class monitor(commands.Cog):
         self.last_update = global_vars.get("last_update")
         self.last_ibtracs_update = global_vars.get("last_ibtracs_update")
         self.auto_update.start()
-        # IBTrACS updates have been disabled for now due to a data outage.
-        # self.daily_ibtracs_update.start()
+        self.daily_ibtracs_update.start()
         self.is_best_track_updating = False
 
     def cog_unload(self):
@@ -215,8 +214,7 @@ class monitor(commands.Cog):
         if (self.last_ibtracs_update is None) or (
             math.floor(time.time()) - self.last_ibtracs_update > 86400
         ):
-            pass
-            # await self.daily_ibtracs_update()
+            await self.daily_ibtracs_update()
 
     async def wait_for_ibtracs(self):
         while self.is_best_track_updating:
