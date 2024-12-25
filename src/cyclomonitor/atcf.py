@@ -26,8 +26,8 @@ from .locales import *
 # For whatever reason I have yet to discover, the domain `www.nrlmry.navy.mil`
 # causes requests from aiohttp to take much longer than expected, so I have to
 # directly connect to its IP address.
-URL = "https://199.9.2.143/tcdat/sectors/atcf_sector_file"
-URL_INTERP = "https://199.9.2.143/tcdat/sectors/interp_sector_file"
+URL = "https://199.9.2.136/geoips/tcdat/sectors/atcf_sector_file"
+URL_INTERP = "https://199.9.2.136/geoips/tcdat/sectors/interp_sector_file"
 URL_ALT = "https://api.knackwx.com/atcf/v2"
 BASE_URL_NHC = (
     "https://www.nhc.noaa.gov/storm_graphics/{0}/{1}_5day_cone_with_line_and_wind.png"
