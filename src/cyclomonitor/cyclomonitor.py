@@ -757,7 +757,7 @@ async def yikes(ctx):
         channel_id = server_vars.get("tracking_channel", guild.id)
         if channel_id is not None:
             channel = bot.get_channel(channel_id)
-            await channel.send(CM_INC_YIKES_COUNT)
+            await channel.send(CM_INC_YIKES_COUNT.format(count))
     logging.info(CM_INC_YIKES_COUNT)
     await ctx.respond(CM_YIKES_RESPONSE)
 

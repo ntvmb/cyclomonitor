@@ -1,4 +1,5 @@
 {
+    "NAME": "Default",
     "LOG_TENDO_NOT_FOUND": "Module tendo not found. Single-instance checking will not be available.",
     "ERROR_ALREADY_RUNNING": "Another instance of CycloMonitor is already running!",
     "LOG_MONITOR_STOP": "Stopping monitor...",
