@@ -1033,7 +1033,7 @@ async def contact_guild(
 ):
     # stupid limitations require me to make the ID a string
     # now we have to convert it back to an int
-    guild = int(guild())
+    guild = int(guild)
     await ctx.defer(ephemeral=True)
     to_guild = bot.get_guild(guild)
     if to_guild is None:
