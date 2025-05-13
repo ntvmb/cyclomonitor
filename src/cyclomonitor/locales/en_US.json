@@ -65,7 +65,7 @@
     "CM_CANNOT_SEND_MESSAGE": "I cannot send messages to that channel! Give me permission to send messages there, or try a different channel.",
     "CM_UPDATE": "Cause CycloMonitor to update immediately",
     "CM_UPDATE_SUCCESS": "Updated!",
-    "ERROR_NO_TRACKING_CHANNEL": "Tracking channel is not set!",
+    "ERROR_NO_TRACKING_CHANNEL": "Tracking channel is not set or is invalid!",
     "CM_UPDATE_ALT": "Cause CycloMonitor to update immediately (Fallback source)",
     "CM_SET_BASINS": "Set basins to track",
     "CM_NATL": "North Atlantic",

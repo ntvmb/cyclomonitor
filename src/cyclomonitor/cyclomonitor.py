@@ -35,6 +35,11 @@ GNU Affero General Public License along with this program. If not, see
 <https://www.gnu.org/licenses/>.
 """
 
+# Prevent PyLance from complaining about these
+INVITE = None
+SERVER = None
+GITHUB = None
+
 try:
     import discord
     from discord import (
@@ -124,18 +129,18 @@ class monitor(commands.Cog):
                 most_recent_dissipation = cid
         if self.should_suppress(prev_timestamps):
             # try alternate source
-            logging.warn(LOG_SUPPRESSED)
+            logging.warning(LOG_SUPPRESSED)
             try:
                 await atcf.get_data_alt()
             except atcf.ATCFError as e:
                 logging.exception(ERROR_AUTO_UPDATE_FAILED)
                 return
             if self.should_suppress(prev_timestamps):
-                logging.warn(LOG_SUPPRESSED_TRY_2)
+                logging.warning(LOG_SUPPRESSED_TRY_2)
                 for guild in bot.guilds:
                     channel_id = server_vars.get("tracking_channel", guild.id)
-                    if channel_id is not None:
-                        channel = bot.get_channel(channel_id)
+                    channel = bot.get_channel(channel_id)
+                    if channel is not None:
                         await channel.send(CM_SUPPRESSED_MESSAGE)
                         await channel.send(
                             NEXT_AUTO_UPDATE.format(
@@ -165,8 +170,8 @@ class monitor(commands.Cog):
         if not isinstance(error, errors.LogRequested):
             for guild in bot.guilds:
                 channel_id = server_vars.get("tracking_channel", guild.id)
-                if channel_id is not None:
-                    channel = bot.get_channel(channel_id)
+                channel = bot.get_channel(channel_id)
+                if channel is not None:
                     await channel.send(CM_AUTO_UPDATE_FAILED_MESSAGE)
 
     @tasks.loop(time=datetime.time(0, 0, tzinfo=datetime.UTC))
@@ -226,6 +231,9 @@ async def update_guild(guild: int, to_channel: int):
     set_locale(server_vars.get("lang", guild))
     logging.info(LOG_UPDATE_GUILD.format(guild))
     channel = bot.get_channel(to_channel)
+    if channel is None:
+        logging.warning(LOG_GUILD_UNAVAILABLE.format(guild))
+        return
     enabled_basins = server_vars.get("basins", guild)
     current_TC_record = global_vars.get("strongest_storm")  # record-keeping
     if enabled_basins is not None:
@@ -422,7 +430,7 @@ async def update_guild(guild: int, to_channel: int):
             sent_list.append(send_message)
             if math.isnan(pressure):
                 pressure = "N/A"
-            if send_message:
+            if send_message and channel is not None:
                 try:
                     await channel.send(
                         CM_STORM_INFO.format(
@@ -443,19 +451,24 @@ async def update_guild(guild: int, to_channel: int):
                 except discord.errors.HTTPException:
                     logging.warning(LOG_GUILD_UNAVAILABLE.format(guild))
                     return
+            elif channel is None:
+                logging.warning(LOG_GUILD_UNAVAILABLE.format(guild))
+                return
 
         for was_sent in sent_list:
             if was_sent:
                 break
         else:  # no break
-            await channel.send(CM_NO_STORMS)
+            if channel is not None:
+                await channel.send(CM_NO_STORMS)
         try:
             next_run = int(cog.auto_update.next_iteration.timestamp())
         except AttributeError:
             next_run = NO_AUTO_UPDATE
         # it is best practice to use official sources when possible
-        await channel.send(CM_NEXT_AUTO_UPDATE.format(next_run))
-        await channel.send(CM_MORE_INFO)
+        if channel is not None:
+            await channel.send(CM_NEXT_AUTO_UPDATE.format(next_run))
+            await channel.send(CM_MORE_INFO)
 
 
 @bot.event
@@ -533,7 +546,7 @@ async def on_application_command_error(ctx: discord.ApplicationContext, error):
             await ctx.respond(CM_NO_PERMISSION, ephemeral=True)
         except discord.errors.HTTPException:
             logging.exception(ERROR_CANNOT_RESPOND)
-        logging.warn(LOG_NO_PERMISSION.format(ctx.author, ctx.command.name))
+        logging.warning(LOG_NO_PERMISSION.format(ctx.author, ctx.command.name))
     elif isinstance(error, commands.errors.NoPrivateMessage):
         try:
             await ctx.respond(CM_NO_DM, ephemeral=True)
@@ -575,14 +588,13 @@ async def set_tracking_channel(ctx, channel):
 async def update(ctx):
     await ctx.defer(ephemeral=True)
     channel_id = server_vars.get("tracking_channel", ctx.guild_id)
+    if bot.get_channel(channel_id) is None:
+        await ctx.respond(ERROR_NO_TRACKING_CHANNEL, ephemeral=True)
     await atcf.get_data()
     cog.last_update = math.floor(time.time())
     global_vars.write("last_update", cog.last_update)
-    if channel_id is not None:
-        await update_guild(ctx.guild_id, channel_id)
-        await ctx.respond(CM_UPDATE_SUCCESS, ephemeral=True)
-    else:
-        await ctx.respond(ERROR_NO_TRACKING_CHANNEL, ephemeral=True)
+    await update_guild(ctx.guild_id, channel_id)
+    await ctx.respond(CM_UPDATE_SUCCESS, ephemeral=True)
     atcf.reset()
 
 
@@ -592,14 +604,13 @@ async def update(ctx):
 async def update_alt(ctx):
     await ctx.defer(ephemeral=True)
     channel_id = server_vars.get("tracking_channel", ctx.guild_id)
+    if bot.get_channel(channel_id) is None:
+        await ctx.respond(ERROR_NO_TRACKING_CHANNEL, ephemeral=True)
     await atcf.get_data_alt()
     cog.last_update = math.floor(time.time())
     global_vars.write("last_update", cog.last_update)
-    if channel_id is not None:
-        await update_guild(ctx.guild_id, channel_id)
-        await ctx.respond(CM_UPDATE_SUCCESS, ephemeral=True)
-    else:
-        await ctx.respond(ERROR_NO_TRACKING_CHANNEL, ephemeral=True)
+    await update_guild(ctx.guild_id, channel_id)
+    await ctx.respond(CM_UPDATE_SUCCESS, ephemeral=True)
     atcf.reset()
 
 
@@ -608,12 +619,12 @@ async def update_alt(ctx):
 @commands.has_guild_permissions(manage_guild=True)
 async def set_basins(
     ctx: discord.ApplicationContext,
-    natl: Option(bool, CM_NATL),
-    epac: Option(bool, CM_EPAC),
-    cpac: Option(bool, CM_CPAC),
-    wpac: Option(bool, CM_WPAC),
-    nio: Option(bool, CM_NIO),
-    shem: Option(bool, CM_SHEM),
+    natl: Option(bool, CM_NATL),  # type: ignore
+    epac: Option(bool, CM_EPAC),  # type: ignore
+    cpac: Option(bool, CM_CPAC),  # type: ignore
+    wpac: Option(bool, CM_WPAC),  # type: ignore
+    nio: Option(bool, CM_NIO),  # type: ignore
+    shem: Option(bool, CM_SHEM),  # type: ignore
 ):
     await ctx.defer(ephemeral=True)
     # fmt: off
@@ -657,7 +668,7 @@ async def update_all_alt(ctx):
 @bot.slash_command(name="announce_all", description=CM_ANNOUNCE_ALL)
 @commands.is_owner()
 async def announce_all(
-    ctx: discord.ApplicationContext, announcement: Option(str, CM_TO_ANNOUNCE)
+    ctx: discord.ApplicationContext, announcement: Option(str, CM_TO_ANNOUNCE)  # type: ignore
 ):
     await ctx.defer(ephemeral=True)
     for guild in bot.guilds:
@@ -676,8 +687,8 @@ async def announce_basin(
         str,
         CM_BASIN_TO_ANNOUNCE,
         choices=["natl", "epac", "cpac", "wpac", "nio", "shem"],
-    ),
-    announcement: Option(str, CM_TO_ANNOUNCE),
+    ),  # type: ignore
+    announcement: Option(str, CM_TO_ANNOUNCE),  # type: ignore
 ):
     await ctx.defer(ephemeral=True)
     for guild in bot.guilds:
@@ -704,7 +715,7 @@ async def announce_basin(
 @commands.is_owner()
 async def announce_file(
     ctx: discord.ApplicationContext,
-    file: Option(discord.SlashCommandOptionType.attachment, CM_TXT_FILE),
+    file: Option(discord.SlashCommandOptionType.attachment, CM_TXT_FILE),  # type: ignore
 ):
     await ctx.defer(ephemeral=True)
     print(file.content_type)
@@ -755,8 +766,8 @@ async def yikes(ctx):
     global_vars.write("yikes_count", count)
     for guild in bot.guilds:
         channel_id = server_vars.get("tracking_channel", guild.id)
-        if channel_id is not None:
-            channel = bot.get_channel(channel_id)
+        channel = bot.get_channel(channel_id)
+        if channel is not None:
             await channel.send(CM_INC_YIKES_COUNT.format(count))
     logging.info(CM_INC_YIKES_COUNT)
     await ctx.respond(CM_YIKES_RESPONSE)
@@ -847,7 +858,7 @@ async def resume_updates(ctx):
 
 @bot.slash_command(name="feedback", description=CM_FEEDBACK)
 async def feedback(
-    ctx: discord.ApplicationContext, msg: Option(str, CM_FEEDBACK_TO_SEND)
+    ctx: discord.ApplicationContext, msg: Option(str, CM_FEEDBACK_TO_SEND)  # type: ignore
 ):
     await ctx.defer(ephemeral=True)
     app = await bot.application_info()
@@ -862,22 +873,22 @@ async def feedback(
 @bot.slash_command(name="get_past_storm", description=CM_GET_PAST_STORM)
 async def get_past_storm(
     ctx: discord.ApplicationContext,
-    name: Option(str, CM_PAST_STORM_NAME, default=None),
-    season: Option(int, CM_PAST_STORM_SEASON, min_value=1841, default=0),
+    name: Option(str, CM_PAST_STORM_NAME, default=None),  # type: ignore
+    season: Option(int, CM_PAST_STORM_SEASON, min_value=1841, default=0),  # type: ignore
     basin: Option(
         str,
         CM_PAST_STORM_BASIN,
         choices=["NA", "SA", "EP", "WP", "SP", "NI", "SI"],
         default=None,
-    ),
-    atcf_id: Option(str, CM_PAST_STORM_ATCF, default=None),
-    ibtracs_id: Option(str, CM_PAST_STORM_SID, default=None),
+    ),  # type: ignore
+    atcf_id: Option(str, CM_PAST_STORM_ATCF, default=None),  # type: ignore
+    ibtracs_id: Option(str, CM_PAST_STORM_SID, default=None),  # type: ignore
     table: Option(
         str,
         CM_PAST_STORM_TABLE,
         choices=["LastThreeYears", "AllBestTrack"],
         default="LastThreeYears",
-    ),
+    ),  # type: ignore
 ):
     await ctx.defer(ephemeral=True)
     if cog.is_best_track_updating:
@@ -957,7 +968,7 @@ async def get_past_storm(
 @bot.slash_command(name="set_language", description=CM_SET_LANGUAGE)
 async def set_language(
     ctx: discord.ApplicationContext,
-    language: Option(str, CM_LANG_TO_USE, choices=languages),
+    language: Option(str, CM_LANG_TO_USE, choices=languages),  # type: ignore
 ):
     await ctx.defer(ephemeral=True)
     server_vars.write("lang", language, ctx.guild.id)
@@ -972,7 +983,7 @@ async def storms(ctx: discord.AutocompleteContext):
 @bot.slash_command(name="get_forecast", description=CM_GET_FORECAST)
 async def get_forecast(
     ctx: discord.ApplicationContext,
-    name: Option(str, autocomplete=discord.utils.basic_autocomplete(storms)),
+    name: Option(str, autocomplete=discord.utils.basic_autocomplete(storms)),  # type: ignore
 ):
     await ctx.defer()
     name = name.upper()

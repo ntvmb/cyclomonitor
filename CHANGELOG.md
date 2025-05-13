@@ -1,5 +1,9 @@
 CycloMonitor changelog
 
+# 2025.5.13
+* Require audioop-lts to run the bot on Python 3.13 and later
+* Fix: Attempting to send updates to an invalid channel no longer throws an error
+
 # 2024.7.27
 * New dependency: `aiofiles`
     * This is used by `atcf` and `ibtracs` so disk writes are not blocking
