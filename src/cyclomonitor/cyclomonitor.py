@@ -1028,7 +1028,7 @@ async def guilds(ctx: discord.AutocompleteContext):
 @commands.is_owner()
 async def contact_guild(
     ctx: discord.ApplicationContext,
-    guild: Option(int, autocomplete=discord.utils.basic_autocomplete(guilds())),  # type: ignore
+    guild: Option(int, autocomplete=discord.utils.basic_autocomplete(guilds)),  # type: ignore
     message: str,
 ):
     await ctx.defer(ephemeral=True)
