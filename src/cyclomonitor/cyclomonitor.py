@@ -1031,6 +1031,9 @@ async def contact_guild(
     guild: Option(str, autocomplete=discord.utils.basic_autocomplete(guilds)),  # type: ignore
     message: str,
 ):
+    # stupid limitations require me to make the ID a string
+    # now we have to convert it back to an int
+    guild = int(guild())
     await ctx.defer(ephemeral=True)
     to_guild = bot.get_guild(guild)
     if to_guild is None:
