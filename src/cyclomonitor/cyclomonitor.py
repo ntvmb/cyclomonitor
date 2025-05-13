@@ -471,6 +471,13 @@ async def update_guild(guild: int, to_channel: int):
             await channel.send(CM_MORE_INFO)
 
 
+def get_first_available_channel(guild: discord.Guild) -> discord.TextChannel:
+    for channel in guild.text_channels:
+        if channel.permissions_for(guild.me).send_messages:
+            return channel
+    return None
+
+
 @bot.event
 async def on_ready():
     global cog
@@ -514,10 +521,9 @@ async def on_guild_join(guild: discord.Guild):
     logging.info(LOG_NEW_GUILD.format(guild.name))
     count = len(bot.guilds)
     global_vars.write("guild_count", count)
-    for channel in guild.text_channels:
-        if channel.permissions_for(guild.me).send_messages:
-            await channel.send(CM_GUILD_ADDED)
-            break
+    channel = get_first_available_channel(guild)
+    if channel is not None:
+        await channel.send(CM_GUILD_ADDED)
 
 
 @bot.event
@@ -1012,3 +1018,28 @@ async def get_forecast(
 @bot.slash_command(name="server", description=CM_SERVER)
 async def server(ctx: discord.ApplicationContext):
     await ctx.respond(SERVER, ephemeral=True)
+
+
+async def guilds(ctx: discord.AutocompleteContext):
+    return [guild.id for guild in bot.guilds]
+
+
+@bot.slash_command(name="contact_guild", description="Attempt to message a guild")
+@commands.is_owner()
+async def contact_guild(
+    ctx: discord.ApplicationContext,
+    guild: Option(int, autocomplete=discord.utils.basic_autocomplete(guilds())),  # type: ignore
+    message: str,
+):
+    await ctx.defer(ephemeral=True)
+    to_guild = bot.get_guild(guild)
+    if to_guild is None:
+        raise ValueError
+    channel_id = server_vars.get("tracking_channel", guild)
+    channel = bot.get_channel(channel_id)
+    channel = get_first_available_channel() if channel is None else channel
+    if channel is None:
+        await ctx.respond("No channels available in this server.", ephemeral=True)
+        return
+    await channel.send(f"Message from the developer:\n{message}")
+    await ctx.respond(f"Successfully sent to {to_guild}:\n{message}", ephemeral=True)
