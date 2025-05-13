@@ -1040,7 +1040,7 @@ async def contact_guild(
         raise ValueError
     channel_id = server_vars.get("tracking_channel", guild)
     channel = bot.get_channel(channel_id)
-    channel = get_first_available_channel() if channel is None else channel
+    channel = get_first_available_channel(to_guild) if channel is None else channel
     if channel is None:
         await ctx.respond("No channels available in this server.", ephemeral=True)
         return
