@@ -1021,14 +1021,14 @@ async def server(ctx: discord.ApplicationContext):
 
 
 async def guilds(ctx: discord.AutocompleteContext):
-    return [guild.id for guild in bot.guilds]
+    return [str(guild.id) for guild in bot.guilds]
 
 
 @bot.slash_command(name="contact_guild", description="Attempt to message a guild")
 @commands.is_owner()
 async def contact_guild(
     ctx: discord.ApplicationContext,
-    guild: Option(int, autocomplete=discord.utils.basic_autocomplete(guilds)),  # type: ignore
+    guild: Option(str, autocomplete=discord.utils.basic_autocomplete(guilds)),  # type: ignore
     message: str,
 ):
     await ctx.defer(ephemeral=True)
