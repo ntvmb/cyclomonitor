@@ -2,7 +2,11 @@ CycloMonitor changelog
 
 # 2025.5.13
 * Require audioop-lts to run the bot on Python 3.13 and later
-* Fix: Attempting to send updates to an invalid channel no longer throws an error
+* Fix: Correctly handle invalid tracking channels
+* Fix: Placeholder text in the response to `cyclomonitor.yikes`
+* Fix: Main URL has been updated
+* Changed: `cyclomonitor.get_forecast` now uses autocomplete
+* Changed: When a storm's movement speed is less than 2 kt, its movement will be presented as "nearly stationary" or "stationary"
 
 # 2024.7.27
 * New dependency: `aiofiles`
