@@ -679,8 +679,8 @@ async def announce_all(
     await ctx.defer(ephemeral=True)
     for guild in bot.guilds:
         channel_id = server_vars.get("tracking_channel", guild.id)
-        if channel_id is not None:
-            channel = bot.get_channel(channel_id)
+        channel = bot.get_channel(channel_id)
+        if channel is not None:
             await channel.send(announcement)
     await ctx.respond(CM_ANNOUNCE_ALL_SUCCESS.format(announcement), ephemeral=True)
 
@@ -700,8 +700,8 @@ async def announce_basin(
     for guild in bot.guilds:
         channel_id = server_vars.get("tracking_channel", guild.id)
         enabled_basins = server_vars.get("basins", guild.id)
-        if channel_id is not None:
-            channel = bot.get_channel(channel_id)
+        channel = bot.get_channel(channel_id)
+        if channel is not None:
             send_message = (
                 (basin == "natl" and enabled_basins[0] == "1")
                 or (basin == "epac" and enabled_basins[1] == "1")
