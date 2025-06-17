@@ -51,7 +51,7 @@
     "CM_GUILD_ADDED": "Thanks for adding me!\nTo configure this bot for your server, first set the channel for cyclone updates to be posted in with `/set_tracking_channel`. Then set the basins you'd like to see with `/set_basins`.",
     "LOG_GUILD_REMOVED": "Bot removed from guild: {0}",
     "CM_NO_PERMISSION": "You do not have permission to use this command. This incident will be reported.",
-    "LOG_NO_PERMISSION": "User {0} attempted to execute {1}, but does not have permission to do so.",
+    "LOG_NO_PERMISSION": "An attempt was made to execute a command without sufficient permissions. (user: {0} [{2}]; guild: {3} [{4}]; channel: {5} [{6}]; command: {1}; args: {7})",
     "CM_NO_DM": "This command cannot be used in a DM context.",
     "LOG_COMMAND_ERROR": "An exception occurred while executing command {0}.\n{1}",
     "CM_COMMAND_ERROR": "An exception occurred while executing this command.\n{0}",

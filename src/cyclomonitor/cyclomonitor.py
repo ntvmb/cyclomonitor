@@ -544,7 +544,9 @@ async def on_application_command(ctx: discord.ApplicationContext):
 
 
 @bot.event
-async def on_application_command_error(ctx: discord.ApplicationContext, error):
+async def on_application_command_error(
+    ctx: discord.ApplicationContext, error: BaseException
+):
     if isinstance(error, commands.errors.MissingPermissions) or isinstance(
         error, commands.errors.NotOwner
     ):
@@ -552,7 +554,18 @@ async def on_application_command_error(ctx: discord.ApplicationContext, error):
             await ctx.respond(CM_NO_PERMISSION, ephemeral=True)
         except discord.errors.HTTPException:
             logging.exception(ERROR_CANNOT_RESPOND)
-        logging.warning(LOG_NO_PERMISSION.format(ctx.author, ctx.command.name))
+        logging.warning(
+            LOG_NO_PERMISSION.format(
+                ctx.author,
+                ctx.command.name,
+                ctx.author.id,
+                ctx.guild,
+                ctx.guild.id,
+                ctx.channel,
+                ctx.channel_id,
+                ctx.selected_options,
+            )
+        )
     elif isinstance(error, commands.errors.NoPrivateMessage):
         try:
             await ctx.respond(CM_NO_DM, ephemeral=True)
