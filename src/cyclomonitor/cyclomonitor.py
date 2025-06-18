@@ -587,6 +587,7 @@ async def ping(ctx):
 
 @bot.slash_command(name="set_tracking_channel", description=CM_SET_TRACKING_CHANNEL)
 @guild_only()
+@default_permissions(manage_channels=True)
 @commands.has_guild_permissions(manage_channels=True)
 @option("channel", discord.TextChannel, description=CM_CHANNEL_TO_USE)
 async def set_tracking_channel(ctx, channel):
@@ -603,6 +604,7 @@ async def set_tracking_channel(ctx, channel):
 
 @bot.slash_command(name="update", description=CM_UPDATE)
 @guild_only()
+@default_permissions(manage_messages=True)
 @commands.has_guild_permissions(manage_messages=True)
 async def update(ctx):
     await ctx.defer(ephemeral=True)
@@ -619,6 +621,7 @@ async def update(ctx):
 
 @bot.slash_command(name="update_alt", description=CM_UPDATE_ALT)
 @guild_only()
+@default_permissions(manage_messages=True)
 @commands.has_guild_permissions(manage_messages=True)
 async def update_alt(ctx):
     await ctx.defer(ephemeral=True)
@@ -635,6 +638,7 @@ async def update_alt(ctx):
 
 @bot.slash_command(name="set_basins", description=CM_SET_BASINS)
 @guild_only()
+@default_permissions(manage_guild=True)
 @commands.has_guild_permissions(manage_guild=True)
 async def set_basins(
     ctx: discord.ApplicationContext,
@@ -655,6 +659,7 @@ async def set_basins(
 
 
 @bot.slash_command(name="update_all", description=CM_UPDATE_ALL)
+@default_permissions(administrator=True)
 @commands.is_owner()
 async def update_all(ctx):
     await ctx.defer(ephemeral=True)
@@ -670,6 +675,7 @@ async def update_all(ctx):
 
 
 @bot.slash_command(name="update_all_alt", description=CM_UPDATE_ALL_ALT)
+@default_permissions(administrator=True)
 @commands.is_owner()
 async def update_all_alt(ctx):
     await ctx.defer(ephemeral=True)
@@ -685,6 +691,7 @@ async def update_all_alt(ctx):
 
 
 @bot.slash_command(name="announce_all", description=CM_ANNOUNCE_ALL)
+@default_permissions(administrator=True)
 @commands.is_owner()
 async def announce_all(
     ctx: discord.ApplicationContext, announcement: Option(str, CM_TO_ANNOUNCE)  # type: ignore
@@ -699,6 +706,7 @@ async def announce_all(
 
 
 @bot.slash_command(name="announce_basin", description=CM_ANNOUNCE_BASIN)
+@default_permissions(administrator=True)
 @commands.is_owner()
 async def announce_basin(
     ctx: discord.ApplicationContext,
@@ -731,6 +739,7 @@ async def announce_basin(
 
 
 @bot.slash_command(name="announce_file", description=CM_ANNOUNCE_FILE)
+@default_permissions(administrator=True)
 @commands.is_owner()
 async def announce_file(
     ctx: discord.ApplicationContext,
@@ -804,6 +813,7 @@ async def yikes(ctx):
 
 
 @bot.slash_command(name="get_data", description=CM_GET_DATA)
+@default_permissions(administrator=True)
 @commands.is_owner()
 async def get_data(ctx):
     await ctx.defer(ephemeral=True)
@@ -819,6 +829,7 @@ async def get_data(ctx):
 
 
 @bot.slash_command(name="get_data_alt", description=CM_GET_DATA_ALT)
+@default_permissions(administrator=True)
 @commands.is_owner()
 async def get_data_alt(ctx):
     await ctx.defer(ephemeral=True)
@@ -834,6 +845,7 @@ async def get_data_alt(ctx):
 
 
 @bot.slash_command(name="atcf_reset", description=CM_ATCF_RESET)
+@default_permissions(administrator=True)
 @commands.is_owner()
 async def atcf_reset(ctx):
     atcf.reset()
@@ -857,6 +869,7 @@ async def rsmc_list(ctx):
 
 
 @bot.slash_command(name="get_log", description=CM_GET_LOG)
+@default_permissions(administrator=True)
 @commands.is_owner()
 async def get_log(ctx):
     await ctx.defer(ephemeral=True)
@@ -865,6 +878,7 @@ async def get_log(ctx):
 
 
 @bot.slash_command(name="suspend_updates", description=CM_SUSPEND_UPDATES)
+@default_permissions(administrator=True)
 @commands.is_owner()
 async def suspend_updates(ctx):
     await ctx.defer(ephemeral=True)
@@ -876,6 +890,7 @@ async def suspend_updates(ctx):
 
 
 @bot.slash_command(name="resume_updates", description=CM_RESUME_UPDATES)
+@default_permissions(administrator=True)
 @commands.is_owner()
 async def resume_updates(ctx):
     await ctx.defer(ephemeral=True)
@@ -996,6 +1011,8 @@ async def get_past_storm(
 
 
 @bot.slash_command(name="set_language", description=CM_SET_LANGUAGE)
+@default_permissions(manage_guild=True)
+@commands.has_guild_permissions(manage_guild=True)
 async def set_language(
     ctx: discord.ApplicationContext,
     language: Option(str, CM_LANG_TO_USE, choices=languages),  # type: ignore
@@ -1049,6 +1066,7 @@ async def guilds(ctx: discord.AutocompleteContext):
 
 
 @bot.slash_command(name="contact_guild", description="Attempt to message a guild")
+@default_permissions(administrator=True)
 @commands.is_owner()
 async def contact_guild(
     ctx: discord.ApplicationContext,
