@@ -757,6 +757,13 @@ async def invite(ctx):
     await ctx.respond(CM_INVITE_MESSAGE.format(INVITE), ephemeral=True)
 
 
+def total_member_count() -> int:
+    member_count = 0
+    for guild in bot.guilds:
+        member_count += guild.member_count
+    return member_count
+
+
 @bot.slash_command(name="statistics", description=CM_STATISTICS_DESC)
 async def statistics(ctx):
     await ctx.defer()
@@ -769,7 +776,11 @@ async def statistics(ctx):
     guild_count = global_vars.get("guild_count")
     await ctx.respond(
         CM_STATISTICS.format(
-            guild_count, strongest_storm, yikes_count, process_uptime_human_readable()
+            guild_count,
+            strongest_storm,
+            yikes_count,
+            process_uptime_human_readable(),
+            total_member_count(),
         )
     )
 

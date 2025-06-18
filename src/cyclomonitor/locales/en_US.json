@@ -91,7 +91,7 @@
     "CM_INVITE_MESSAGE": "Here's my invite link!\n<{0}>",
     "CM_STATISTICS_DESC": "Show this bot's records",
     "ERROR_NO_GLOBAL_VARS": "Could not get global variables.",
-    "CM_STATISTICS": "# CycloMonitor statistics\nCurrently serving {0} guilds.\nStrongest cyclone recorded by this bot: {1[0]} {1[1]} {1[2]} ({1[3]})\n- Wind peak: {1[5]} kt ({1[6]} mph/{1[7]} kph)\n- Pressure peak: {1[8]} mb\n- Time recorded: <t:{1[4]}:f>\nCurrent yikes counter: {2}\nBot uptime: {3}",
+    "CM_STATISTICS": "# CycloMonitor statistics\nCurrently serving {0} guilds, totalling {4} members.\nStrongest cyclone recorded by this bot: {1[0]} {1[1]} {1[2]} ({1[3]})\n- Wind peak: {1[5]} kt ({1[6]} mph/{1[7]} kph)\n- Pressure peak: {1[8]} mb\n- Time recorded: <t:{1[4]}:f>\nCurrent yikes counter: {2}\nBot uptime: {3}",
     "CM_YIKES": "Yikes!",
     "CM_INC_YIKES_COUNT": "The yikes count is now {0}!",
     "CM_YIKES_RESPONSE": "# Yikes!\nThe yikes count is now {0}!",
