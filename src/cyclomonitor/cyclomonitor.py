@@ -795,7 +795,7 @@ async def statistics(ctx):
 
 
 @bot.slash_command(name="yikes", description=CM_YIKES)
-async def yikes(ctx):
+async def yikes(ctx: discord.ApplicationContext):
     await ctx.defer(ephemeral=True)
     count = global_vars.get("yikes_count")
     if count is not None:
@@ -808,8 +808,8 @@ async def yikes(ctx):
         channel = bot.get_channel(channel_id)
         if channel is not None:
             await channel.send(CM_INC_YIKES_COUNT.format(count))
-    logging.info(CM_INC_YIKES_COUNT)
-    await ctx.respond(CM_YIKES_RESPONSE)
+    logging.info(CM_INC_YIKES_COUNT.format(ctx.author, ctx.author.id))
+    await ctx.respond(CM_YIKES_RESPONSE.format(count))
 
 
 @bot.slash_command(name="get_data", description=CM_GET_DATA)

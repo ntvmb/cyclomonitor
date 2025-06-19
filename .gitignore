@@ -1,11 +1,9 @@
 build
 dist
 cyclomonitor.code-workspace
-src/cyclomonitor/__pycache__/
-src/cyclomonitor/ibtracs/__pycache__/
-src/cyclomonitor/locales/__pycache__/
-src/cyclomonitor/ibtracs/locales/__pycache__/
+**/__pycache__/
 src/cyclomonitor/ibtracs/BestTrack.db
 src/cyclomonitor.egg-info
 src/cyclomonitor/locales/es_US.json
 **/*.log
+.venv

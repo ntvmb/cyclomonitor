@@ -8,6 +8,7 @@ CycloMonitor stores the following information:
 - Users**
   - Username
   - Discriminator (if applicable)
+  - ID
   - Most recently used command
 
 *Required  
