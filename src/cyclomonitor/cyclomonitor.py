@@ -141,12 +141,18 @@ class monitor(commands.Cog):
                     channel_id = server_vars.get("tracking_channel", guild.id)
                     channel = bot.get_channel(channel_id)
                     if channel is not None:
-                        await channel.send(CM_SUPPRESSED_MESSAGE)
-                        await channel.send(
-                            NEXT_AUTO_UPDATE.format(
-                                math.floor(cog.auto_update.next_iteration.timestamp())
+                        try:
+                            await channel.send(CM_SUPPRESSED_MESSAGE)
+                            await channel.send(
+                                NEXT_AUTO_UPDATE.format(
+                                    math.floor(
+                                        cog.auto_update.next_iteration.timestamp()
+                                    )
+                                )
                             )
-                        )
+                        except discord.errors.HTTPException:
+                            logging.warning(LOG_GUILD_UNAVAILABLE)
+                            continue
                 return
         for guild in bot.guilds:
             channel_id = server_vars.get("tracking_channel", guild.id)
