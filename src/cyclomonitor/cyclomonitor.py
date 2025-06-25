@@ -151,7 +151,7 @@ class monitor(commands.Cog):
                                 )
                             )
                         except discord.errors.HTTPException:
-                            logging.warning(LOG_GUILD_UNAVAILABLE)
+                            logging.warning(LOG_GUILD_UNAVAILABLE.format(guild.id))
                             continue
                 return
         for guild in bot.guilds:
@@ -707,7 +707,11 @@ async def announce_all(
         channel_id = server_vars.get("tracking_channel", guild.id)
         channel = bot.get_channel(channel_id)
         if channel is not None:
-            await channel.send(announcement)
+            try:
+                await channel.send(announcement)
+            except discord.errors.HTTPException:
+                logging.warning(LOG_GUILD_UNAVAILABLE.format(guild.id))
+                continue
     await ctx.respond(CM_ANNOUNCE_ALL_SUCCESS.format(announcement), ephemeral=True)
 
 
@@ -738,7 +742,13 @@ async def announce_basin(
                 or (basin == "shem" and enabled_basins[5] == "1")
             )
             if send_message:
-                await channel.send(CM_BASIN_ANNOUNCEMENT.format(basin, announcement))
+                try:
+                    await channel.send(
+                        CM_BASIN_ANNOUNCEMENT.format(basin, announcement)
+                    )
+                except discord.errors.HTTPException:
+                    logging.warning(LOG_GUILD_UNAVAILABLE.format(guild.id))
+                    continue
     await ctx.respond(
         CM_ANNOUNCE_BASIN_SUCCESS.format(basin, announcement), ephemeral=True
     )
@@ -759,9 +769,13 @@ async def announce_file(
         announcement = open("announcement.md", "r").read()
         for guild in bot.guilds:
             channel_id = server_vars.get("tracking_channel", guild.id)
-            if channel_id is not None:
-                channel = bot.get_channel(channel_id)
-                await channel.send(announcement)
+            channel = bot.get_channel(channel_id)
+            if channel is not None:
+                try:
+                    await channel.send(announcement)
+                except discord.errors.HTTPException:
+                    logging.warning(LOG_GUILD_UNAVAILABLE.format(guild.id))
+                    continue
         await ctx.respond(CM_ANNOUNCE_ALL_SUCCESS.format(announcement), ephemeral=True)
     else:
         await ctx.respond(ERROR_NOT_A_TXT_FILE, ephemeral=True)
