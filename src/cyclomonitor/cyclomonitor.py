@@ -1186,7 +1186,7 @@ async def help_wrapper(ctx: discord.ApplicationContext, commands: int):
                 command_set = COMMON_COMMANDS
             case _:  # output all commands by default
                 info = CM_ALL_COMMANDS
-                command_set = COMMON_COMMANDS + ADMIN_COMMANDS
+                command_set = COMMON_COMMANDS | ADMIN_COMMANDS
         ss.write(info)
         for command in command_set:
             cmd_real = bot.get_application_command(command)
