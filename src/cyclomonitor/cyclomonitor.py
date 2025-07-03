@@ -1098,7 +1098,9 @@ async def storms(ctx: discord.AutocompleteContext):
 @bot.slash_command(name="get_forecast", description=CM_GET_FORECAST)
 async def get_forecast(
     ctx: discord.ApplicationContext,
-    name: Option(str, autocomplete=discord.utils.basic_autocomplete(storms)),  # type: ignore
+    name: Option(
+        str, CM_STORM_NAME, autocomplete=discord.utils.basic_autocomplete(storms)
+    ),  # type: ignore
 ):
     await ctx.defer()
     name = name.upper()
@@ -1179,9 +1181,12 @@ async def help_wrapper(ctx: discord.ApplicationContext, commands: int):
             case 3:
                 info = CM_USEFUL_COMMANDS
                 command_set = USEFUL_COMMANDS
-            case _:  # output common commands by default
+            case 4:
                 info = CM_COMMON_COMMANDS
                 command_set = COMMON_COMMANDS
+            case _:  # output all commands by default
+                info = CM_ALL_COMMANDS
+                command_set = COMMON_COMMANDS + ADMIN_COMMANDS
         ss.write(info)
         for command in command_set:
             cmd_real = bot.get_application_command(command)
@@ -1214,3 +1219,48 @@ async def help_config(ctx: discord.ApplicationContext):
 @help.command(name="internal", description=CM_HELP_INTERNAL)
 async def help_internal(ctx: discord.ApplicationContext):
     await help_wrapper(ctx, 0)
+
+
+@help.command(name="all", description=CM_HELP_ALL)
+async def help_all(ctx: discord.ApplicationContext):
+    await help_wrapper(ctx, 5)
+
+
+def commands(ctx: discord.AutocompleteContext):
+    return [
+        cmd.qualified_name
+        for cmd in bot.walk_application_commands()
+        if isinstance(cmd, discord.SlashCommand)
+    ]
+
+
+@help.command(name="command", description=CM_HELP_COMMAND)
+async def help_command(
+    ctx: discord.ApplicationContext,
+    cmd: Option(
+        str, CM_WHICH_COMMAND, autocomplete=discord.utils.basic_autocomplete(commands)
+    ),  # type: ignore
+):
+    await ctx.defer()
+    cmd_real = bot.get_application_command(cmd)
+    if not isinstance(cmd_real, discord.SlashCommand):
+        raise TypeError(ERROR_WTF.format(type(cmd_real)))
+    ext_desc = globals().get(
+        f"CM_EXTENDED_{cmd_real.qualified_name.upper().replace(" ", "_")}",
+        MISSING_DESCRIPTION,
+    )
+    with StringIO() as ss:
+        ss.write(f"# {cmd_real.qualified_name}\n")
+        ss.write(f"`/{cmd_real.qualified_name}` -- {cmd_real.description}\n")
+        ss.write(ext_desc)
+        ss.write("\n")
+        if cmd_real.options:
+            ss.write(PARAMETERS)
+            for option in cmd_real.options:
+                ss.write(f"`{option.name}` -- {option.description}\n")
+        else:
+            ss.write(HAS_NO_PARAMETERS)
+        if cmd in INTERNAL_COMMANDS:
+            ss.write("\n")
+            ss.write(FOR_INTERNAL_USE_ONLY)
+        await ctx.respond(ss.getvalue())

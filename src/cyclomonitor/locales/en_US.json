@@ -237,5 +237,8 @@
     "PARAMETERS": "Parameters:\n",
     "HAS_NO_PARAMETERS": "This command does not take any additional parameters.",
     "FOR_INTERNAL_USE_ONLY": "**This command is for internal use only. Attempts to use this command will be logged.**",
-    "MISSING_DESCRIPTION": "Missing extended description"
+    "MISSING_DESCRIPTION": "Missing extended description",
+    "NO_DESCRIPTION_PROVIDED": "No description provided",
+    "CM_STORM_NAME": "Storm name",
+    "CM_WHICH_COMMAND": "Which command?"
 }
