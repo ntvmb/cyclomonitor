@@ -55,6 +55,53 @@ except ImportError as e:
 
 KT_TO_MPH = 1.15077945
 KT_TO_KMH = 1.852
+COMMON_COMMANDS = {
+    "ping",
+    "invite",
+    "statistics",
+    "yikes",
+    "github",
+    "copyright",
+    "rsmc_list",
+    "feedback",
+    "get_past_storm",
+    "get_forecast",
+    "server",
+}
+USEFUL_COMMANDS = {
+    "invite",
+    "rsmc_list",
+    "feedback",
+    "get_past_storm",
+    "get_forecast",
+    "server",
+}
+ADMIN_COMMANDS = {
+    "set_tracking_channel",
+    "update",
+    "update_alt",
+    "set_basins",
+    "set_language",
+}
+CONFIG_COMMANDS = {
+    "set_tracking_channel",
+    "set_basins",
+    "set_language",
+}
+INTERNAL_COMMANDS = {
+    "update_all",
+    "update_all_alt",
+    "announce_all",
+    "announce_basin",
+    "announce_file",
+    "get_data",
+    "get_data_alt",
+    "atcf_reset",
+    "get_log",
+    "suspend_updates",
+    "resume_updates",
+    "contact_guild",
+}
 bot = discord.Bot(intents=discord.Intents.default())
 # it is ideal to put out the information as soon as possible, but there may be overrides
 times = [
@@ -67,6 +114,7 @@ log = logging.getLogger(__name__)
 languages = ["C", "en_US"]
 emojis = {}
 most_recent_dissipation = None
+help = bot.create_group("help", CM_HELP_GENERAL)
 
 
 class monitor(commands.Cog):
@@ -1108,3 +1156,61 @@ async def contact_guild(
         return
     await channel.send(f"Message from the developer:\n{message}")
     await ctx.respond(f"Successfully sent to {to_guild}:\n{message}", ephemeral=True)
+
+
+@help.command(name="general", description=CM_HELP_GENERAL)
+async def help_general(ctx: discord.ApplicationContext):
+    await ctx.respond(CM_GENERAL_HELP)
+
+
+async def help_wrapper(ctx: discord.ApplicationContext, commands: int):
+    await ctx.defer()
+    with StringIO() as ss:
+        match commands:
+            case 0:
+                info = CM_INTERNAL_COMMANDS
+                command_set = INTERNAL_COMMANDS
+            case 1:
+                info = CM_ADMIN_COMMANDS
+                command_set = ADMIN_COMMANDS
+            case 2:
+                info = CM_CONFIG_COMMANDS
+                command_set = CONFIG_COMMANDS
+            case 3:
+                info = CM_USEFUL_COMMANDS
+                command_set = USEFUL_COMMANDS
+            case _:  # output common commands by default
+                info = CM_COMMON_COMMANDS
+                command_set = COMMON_COMMANDS
+        ss.write(info)
+        for command in command_set:
+            cmd_real = bot.get_application_command(command)
+            if not isinstance(cmd_real, discord.SlashCommand):
+                continue
+            ss.write(f"`/{cmd_real.qualified_name}` -- {cmd_real.description}\n")
+        await ctx.respond(ss.getvalue())
+
+
+@help.command(name="common", description=CM_HELP_COMMON)
+async def help_common(ctx: discord.ApplicationContext):
+    await help_wrapper(ctx, 4)
+
+
+@help.command(name="useful", description=CM_HELP_USEFUL)
+async def help_useful(ctx: discord.ApplicationContext):
+    await help_wrapper(ctx, 3)
+
+
+@help.command(name="admin", description=CM_HELP_ADMIN)
+async def help_admin(ctx: discord.ApplicationContext):
+    await help_wrapper(ctx, 1)
+
+
+@help.command(name="config", description=CM_HELP_CONFIG)
+async def help_config(ctx: discord.ApplicationContext):
+    await help_wrapper(ctx, 2)
+
+
+@help.command(name="internal", description=CM_HELP_INTERNAL)
+async def help_internal(ctx: discord.ApplicationContext):
+    await help_wrapper(ctx, 0)
