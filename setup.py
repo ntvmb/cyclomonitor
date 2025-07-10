@@ -18,7 +18,7 @@ setup(
     author="Nathaniel Greenwell",
     author_email="nategreenwell@live.com",
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Topic :: Internet",
         "Topic :: Scientific/Engineering",
