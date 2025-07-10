@@ -1,5 +1,26 @@
 CycloMonitor changelog
 
+# 2025.7.10
+**Finally beta!**  
+* Added: `/contact_guild` command
+    * Internal command used to send a message to a specific guild
+* Added: `/help` commands
+    * `/help general` -- Main help page
+    * `/help all` -- Show all commands
+    * `/help common` -- Show commands usable by anyone
+    * `/help useful` -- Show a subset of common commands that are most useful
+    * `/help admin` -- Show administration commands
+    * `/help config` -- Show configuration commands
+    * `/help internal` -- Show internal commands
+    * `/help command` -- Show extended details on a command
+* Changed: Internal commands are no longer visible to regular users by default
+* Changed: Use `discord.default_permissions` to hide administration commands from unprivileged users by default
+* Changed: `cyclomonitor.statistics` now shows the total member count across all guilds.
+    * This is an estimate which may not accurately reflect the true number of members being served.
+* Changed: Security event logging is now more verbose.
+* Fix: The `/announce_*` commands no longer fail when encountering invalid channels.
+* Fix: HTTP 403 errors from Discord no longer cause automatic updates or announcements to fail.
+
 # 2025.5.13
 * Require audioop-lts to run the bot on Python 3.13 and later
 * Fix: Correctly handle invalid tracking channels
