@@ -29,6 +29,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3 :: Only",
     ],
     keywords=[
@@ -48,7 +49,7 @@ setup(
     python_requires=">=3.8",
     install_requires=["aiohttp>=3.6.0", "aiofiles>=23.2.1"],
     extras_require={
-        "bot": ["py-cord>=2.5.0", "tendo>=0.3.0"],
+        "bot": ["py-cord>=2.6.1", "audioop-lts; python_version >= '3.13'", "tendo"],
     },
     project_urls={
         "Bug Reports": "https://github.com/ntvmb/cyclomonitor/issues",
