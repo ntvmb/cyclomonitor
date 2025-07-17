@@ -9,12 +9,13 @@ import datetime
 import logging
 import time
 import asyncio
+import sys
 from . import ibtracs
 from types import GeneratorType
 from .uptime import *
 from .dir_calc import get_dir
 from io import StringIO
-from sys import exit
+from os import uname
 from .locales import *
 
 copyright_notice = """
@@ -39,6 +40,8 @@ GNU Affero General Public License along with this program. If not, see
 INVITE = None
 SERVER = None
 GITHUB = None
+
+__version__ = "master"
 
 try:
     import discord
@@ -1264,3 +1267,22 @@ async def help_command(
             ss.write("\n")
             ss.write(FOR_INTERNAL_USE_ONLY)
         await ctx.respond(ss.getvalue())
+
+
+@bot.slash_command(name="about", description=CM_ABOUT)
+async def about(ctx: discord.ApplicationContext):
+    await ctx.defer()
+    os_info = uname()
+    owner = (await bot.application_info()).owner
+    await ctx.respond(
+        CM_INFO.format(
+            __version__,
+            os_info.sysname,
+            os_info.release,
+            sys.version,
+            os_info.nodename,
+            owner.display_name,
+            owner.name,
+            owner.id,
+        )
+    )
