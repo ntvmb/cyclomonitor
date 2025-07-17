@@ -216,7 +216,7 @@ class monitor(commands.Cog):
             logging.exception(CM_ERROR_WHILE_UPDATING)
         app = await self.bot.application_info()
         if app.team is not None:
-            bot_owner = self.bot.get_user(app.team.owner_id)
+            bot_owner = await self.bot.fetch_user(app.team.owner_id)
         else:
             bot_owner = app.owner
         if bot_owner is not None:
@@ -1278,7 +1278,7 @@ async def about(ctx: discord.ApplicationContext):
     os_info = uname()
     app_info = await bot.application_info()
     if app_info.team is not None:
-        owner = bot.get_user(app_info.team.owner_id)
+        owner = await bot.fetch_user(app_info.team.owner_id)
     else:
         owner = app_info.owner
     await ctx.respond(
