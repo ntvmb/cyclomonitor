@@ -981,7 +981,10 @@ async def feedback(
 ):
     await ctx.defer(ephemeral=True)
     app = await bot.application_info()
-    bot_owner = app.owner
+    if app.team is not None:
+        bot_owner = await bot.fetch_user(app.team.owner_id)
+    else:
+        bot_owner = app.owner
     if bot_owner is not None:
         await bot_owner.send(CM_FEEDBACK_RECEIVED.format(ctx.author, msg))
         await ctx.respond(CM_FEEDBACK_SENT.format(msg))
