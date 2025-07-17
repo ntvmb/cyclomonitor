@@ -124,7 +124,7 @@ class monitor(commands.Cog):
     """This class governs automated routines."""
 
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: discord.Bot = bot
         self.last_update = global_vars.get("last_update")
         self.last_ibtracs_update = global_vars.get("last_ibtracs_update")
         self.auto_update.start()
@@ -215,7 +215,10 @@ class monitor(commands.Cog):
         if not isinstance(error, errors.LogRequested):
             logging.exception(CM_ERROR_WHILE_UPDATING)
         app = await self.bot.application_info()
-        bot_owner = app.owner
+        if app.team is not None:
+            bot_owner = self.bot.get_user(app.team.owner_id)
+        else:
+            bot_owner = app.owner
         if bot_owner is not None:
             try:
                 with open("bot.log", "rb") as log:
@@ -1273,7 +1276,11 @@ async def help_command(
 async def about(ctx: discord.ApplicationContext):
     await ctx.defer()
     os_info = uname()
-    owner = (await bot.application_info()).owner
+    app_info = await bot.application_info()
+    if app_info.team is not None:
+        owner = bot.get_user(app_info.team.owner_id)
+    else:
+        owner = app_info.owner
     await ctx.respond(
         CM_INFO.format(
             __version__,
