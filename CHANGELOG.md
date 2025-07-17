@@ -1,5 +1,11 @@
 CycloMonitor changelog
 
+# 2025.7.17
+**Terms of Service have been updated.**
+* Fix: `/feedback`, `/get_log` and automatic error reporting now work correctly when the app belongs to a team.
+* Added: `/about` command
+    * Display system information about the running instance of CycloMonitor
+
 # 2025.7.10
 **Finally beta!**  
 * Added: `/contact_guild` command

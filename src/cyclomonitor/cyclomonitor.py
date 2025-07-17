@@ -41,7 +41,7 @@ INVITE = None
 SERVER = None
 GITHUB = None
 
-__version__ = "master"
+__version__ = "2025.7.17"
 
 try:
     import discord
