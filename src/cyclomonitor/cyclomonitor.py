@@ -41,7 +41,7 @@ INVITE = None
 SERVER = None
 GITHUB = None
 
-__version__ = "2025.7.17"
+__version__ = "master"
 
 try:
     import discord
@@ -1110,6 +1110,7 @@ async def get_forecast(
     name: Option(
         str, CM_STORM_NAME, autocomplete=discord.utils.basic_autocomplete(storms)
     ),  # type: ignore
+    experimental: Option(bool, CM_EXPER_CONE, default=False),  # type: ignore
 ):
     await ctx.defer()
     name = name.upper()
@@ -1118,7 +1119,7 @@ async def get_forecast(
         return
 
     try:
-        ext = await atcf.get_forecast(name=name)
+        ext = await atcf.get_forecast(name=name, use_exper=experimental)
     except atcf.NoActiveStorms:
         await ctx.respond(CM_NO_ACTIVE_STORMS)
     except Exception as e:

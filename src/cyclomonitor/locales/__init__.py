@@ -250,6 +250,7 @@ CM_STORM_NAME = "CM_STORM_NAME"
 CM_WHICH_COMMAND = "CM_WHICH_COMMAND"
 CM_ABOUT = "CM_ABOUT"
 CM_INFO = "CM_INFO"
+CM_EXPER_CONE = "CM_EXPER_CONE"
 
 _log = _logging.getLogger(__name__)
 locale.setlocale(locale.LC_ALL, "")

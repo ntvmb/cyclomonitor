@@ -32,6 +32,7 @@ URL_ALT = "https://api.knackwx.com/atcf/v2"
 BASE_URL_NHC = (
     "https://www.nhc.noaa.gov/storm_graphics/{0}/{1}_5day_cone_with_line_and_wind.png"
 )
+BASE_URL_NHC_EXPER = "https://www.nhc.noaa.gov/storm_graphics/{0}/{1}_5day_expCone.png"
 BASE_URL_JTWC = "https://www.metoc.navy.mil/jtwc/products/{0}.gif"
 cyclones = []
 names = []
@@ -281,7 +282,7 @@ async def get_data_alt():
             continue
 
 
-async def get_forecast(*, name="", cid=""):
+async def get_forecast(*, name="", cid="", use_exper=False):
     """Download the official forecast image for an active TC.
     Returns the extension of the downloaded image file.
 
@@ -322,7 +323,10 @@ async def get_forecast(*, name="", cid=""):
     ) as session:
         if nhc_basin is not None:
             nhc_id = f"{nhc_basin}{num}"
-            coro = session.get(BASE_URL_NHC.format(nhc_id, atcf_id))
+            if use_exper:
+                coro = session.get(BASE_URL_NHC_EXPER.format(nhc_id, atcf_id))
+            else:
+                coro = session.get(BASE_URL_NHC.format(nhc_id, atcf_id))
         else:
             basin = basin.lower()
             jtwc_id = f"{basin}{num}{jtwc_year}"

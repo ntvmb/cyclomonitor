@@ -241,5 +241,6 @@
     "NO_DESCRIPTION_PROVIDED": "No description provided",
     "CM_STORM_NAME": "Storm name",
     "CM_WHICH_COMMAND": "Which command?",
-    "CM_INFO": "This is CycloMonitor version {0}, running on {1} {2} via Python {3}.\nMy owner is {4} ({5}; {6}), who should be happy to help you out!"
+    "CM_INFO": "This is CycloMonitor version {0}, running on {1} {2} via Python {3}.\nMy owner is {4} ({5}; {6}), who should be happy to help you out!",
+    "CM_EXPER_CONE": "Use experimental cone (NHC and CPHC only)"
 }
