@@ -344,20 +344,22 @@ async def update_guild(guild: int, to_channel: int):
                     c_dir, movement_speed, movement_mph, movement_kph
                 )
             # accomodate for basin crossovers
-            if lat_real > 0 and long_real > 30 and long_real < 97:
-                basin = "IO"
-            elif lat_real > 0 and long_real > 97:
-                basin = "WPAC"
-            elif lat_real > 0 and long_real < -140:
-                basin = "CPAC"
-            elif lat_real > 0 and (
-                (lat_real < 7.6 and long_real < -77)
-                or (lat_real < 10 and long_real < -85)
-                or (lat_real < 15 and long_real < -87)
-                or (lat_real < 16 and long_real < -92.5)
-                or long_real < -100
-            ):
-                basin = "EPAC"
+            # ignore mediterranean storms
+            if basin != "MED":
+                if lat_real > 0 and long_real > 30 and long_real < 97:
+                    basin = "IO"
+                elif lat_real > 0 and long_real > 97:
+                    basin = "WPAC"
+                elif lat_real > 0 and long_real < -140:
+                    basin = "CPAC"
+                elif lat_real > 0 and (
+                    (lat_real < 7.6 and long_real < -77)
+                    or (lat_real < 10 and long_real < -85)
+                    or (lat_real < 15 and long_real < -87)
+                    or (lat_real < 16 and long_real < -92.5)
+                    or long_real < -100
+                ):
+                    basin = "EPAC"
             logging.debug(LOG_BASIN.format(cyc_id, basin))
 
             if pressure == 0:
@@ -480,7 +482,7 @@ async def update_guild(guild: int, to_channel: int):
 
             # this check is really long since it needs to accomodate for every possible situation
             send_message = (
-                (basin == "ATL" and enabled_basins[0] == "1")
+                ((basin == "ATL" or basin == "MED") and enabled_basins[0] == "1")
                 or (basin == "EPAC" and enabled_basins[1] == "1")
                 or (basin == "CPAC" and enabled_basins[2] == "1")
                 or (basin == "WPAC" and enabled_basins[3] == "1")

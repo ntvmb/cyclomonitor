@@ -68,7 +68,7 @@
     "ERROR_NO_TRACKING_CHANNEL": "Tracking channel is not set or is invalid!",
     "CM_UPDATE_ALT": "Cause CycloMonitor to update immediately (Fallback source)",
     "CM_SET_BASINS": "Set basins to track",
-    "CM_NATL": "North Atlantic",
+    "CM_NATL": "North Atlantic and Mediterranean Sea",
     "CM_EPAC": "Northeastern Pacific",
     "CM_CPAC": "North central Pacific",
     "CM_WPAC": "Northwestern Pacific",
