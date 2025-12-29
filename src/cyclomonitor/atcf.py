@@ -26,9 +26,7 @@ from .locales import *
 # For whatever reason I have yet to discover, the domain `www.nrlmry.navy.mil`
 # causes requests from aiohttp to take much longer than expected, so I have to
 # directly connect to its IP address.
-URL = "https://199.9.2.136/geoips/tcdat/sectors/atcf_sector_file"
-URL_INTERP = "https://199.9.2.136/geoips/tcdat/sectors/interp_sector_file"
-URL_ALT = "https://api.knackwx.com/atcf/v2"
+URL = "https://api.knackwx.com/atcf/v2"
 BASE_URL_NHC = (
     "https://www.nhc.noaa.gov/storm_graphics/{0}/{1}_5day_cone_with_line_and_wind.png"
 )
@@ -223,32 +221,6 @@ def load():
 load()
 
 
-async def get_data():
-    """Download ATCF data."""
-    global cyclones, names, timestamps, lats, longs, basins, winds, pressures
-    global tc_classes, lats_real, longs_real, movement_speeds, movement_dirs
-    reset()
-    log.info(ATCF_USING_MAIN)
-    async with aiohttp.ClientSession(
-        timeout=aiohttp.ClientTimeout(connect=10), raise_for_status=True
-    ) as session:
-        try:
-            async with session.get(URL, ssl=False) as r:
-                async with aiofiles.open("atcf_sector_file", "w") as f:
-                    await f.write(await r.text())
-            async with session.get(URL_INTERP, ssl=False) as r:
-                async with aiofiles.open("interp_sector_file", "w") as f:
-                    await f.write(await r.text())
-        except Exception as e:
-            log.warning(ATCF_USING_MAIN_FAILED.format(e))
-            await get_data_alt()
-            return
-    load()
-    # safeguard for some situations where the main ATCF website is down
-    if not cyclones:
-        await get_data_alt()
-
-
 async def get_data_alt():
     """Download ATCF data (alt source)."""
     global cyclones, names, timestamps, lats, longs, basins, winds, pressures
@@ -259,7 +231,7 @@ async def get_data_alt():
         timeout=aiohttp.ClientTimeout(connect=10), raise_for_status=True
     ) as session:
         try:
-            async with session.get(URL_ALT) as r:
+            async with session.get(URL) as r:
                 tc_list = await r.json()
         except asyncio.TimeoutError as e:
             raise ATCFError(ERROR_TIMED_OUT) from e
@@ -280,6 +252,10 @@ async def get_data_alt():
             parse_storm(d["interp_sector_file"], mode="interp")
         except WrongData:
             continue
+
+
+# Alias of get_data_alt for compatibility reasons
+get_data = get_data_alt
 
 
 async def get_forecast(*, name="", cid="", use_exper=False):
