@@ -105,7 +105,13 @@ INTERNAL_COMMANDS = {
     "resume_updates",
     "contact_guild",
 }
-bot = discord.Bot(intents=discord.Intents.default())
+bot = discord.Bot(
+    intents=discord.Intents.default(),
+    default_command_integration_types={
+        discord.IntegrationType.guild_install,
+        discord.IntegrationType.user_install,
+    },
+)
 # it is ideal to put out the information as soon as possible, but there may be overrides
 times = [
     datetime.time(2, 0, tzinfo=datetime.UTC),
@@ -641,13 +647,21 @@ async def on_application_command_error(
             logging.exception(ERROR_CANNOT_RESPOND)
 
 
-@bot.slash_command(name="ping", description=CM_PING)
+@bot.slash_command(
+    name="ping",
+    description=CM_PING,
+    integration_types={discord.IntegrationType.guild_install},
+)
 async def ping(ctx):
     await ctx.defer(ephemeral=True)
     await ctx.respond(CM_PONG.format(int(bot.latency * 1000)), ephemeral=True)
 
 
-@bot.slash_command(name="set_tracking_channel", description=CM_SET_TRACKING_CHANNEL)
+@bot.slash_command(
+    name="set_tracking_channel",
+    description=CM_SET_TRACKING_CHANNEL,
+    integration_types={discord.IntegrationType.guild_install},
+)
 @guild_only()
 @default_permissions(manage_channels=True)
 @commands.has_guild_permissions(manage_channels=True)
@@ -664,7 +678,11 @@ async def set_tracking_channel(ctx, channel):
             await ctx.respond(CM_CANNOT_SEND_MESSAGE, ephemeral=True)
 
 
-@bot.slash_command(name="update", description=CM_UPDATE)
+@bot.slash_command(
+    name="update",
+    description=CM_UPDATE,
+    integration_types={discord.IntegrationType.guild_install},
+)
 @guild_only()
 @default_permissions(manage_messages=True)
 @commands.has_guild_permissions(manage_messages=True)
@@ -681,7 +699,11 @@ async def update(ctx):
     atcf.reset()
 
 
-@bot.slash_command(name="update_alt", description=CM_UPDATE_ALT)
+@bot.slash_command(
+    name="update_alt",
+    description=CM_UPDATE_ALT,
+    integration_types={discord.IntegrationType.guild_install},
+)
 @guild_only()
 @default_permissions(manage_messages=True)
 @commands.has_guild_permissions(manage_messages=True)
@@ -698,7 +720,11 @@ async def update_alt(ctx):
     atcf.reset()
 
 
-@bot.slash_command(name="set_basins", description=CM_SET_BASINS)
+@bot.slash_command(
+    name="set_basins",
+    description=CM_SET_BASINS,
+    integration_types={discord.IntegrationType.guild_install},
+)
 @guild_only()
 @default_permissions(manage_guild=True)
 @commands.has_guild_permissions(manage_guild=True)
@@ -1089,7 +1115,11 @@ async def get_past_storm(
         raise TypeError(ERROR_WTF.format(type(results)))
 
 
-@bot.slash_command(name="set_language", description=CM_SET_LANGUAGE)
+@bot.slash_command(
+    name="set_language",
+    description=CM_SET_LANGUAGE,
+    integration_types={discord.IntegrationType.guild_install},
+)
 @default_permissions(manage_guild=True)
 @commands.has_guild_permissions(manage_guild=True)
 async def set_language(
