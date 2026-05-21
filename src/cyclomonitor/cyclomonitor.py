@@ -620,7 +620,7 @@ async def on_application_command_error(
     ):
         try:
             await ctx.respond(CM_NO_PERMISSION, ephemeral=True)
-        except discord.errors.HTTPException:
+        except Exception:
             logging.exception(ERROR_CANNOT_RESPOND)
         logging.warning(
             LOG_NO_PERMISSION.format(
@@ -637,13 +637,13 @@ async def on_application_command_error(
     elif isinstance(error, commands.errors.NoPrivateMessage):
         try:
             await ctx.respond(CM_NO_DM, ephemeral=True)
-        except discord.errors.HTTPException:
+        except Exception:
             logging.exception(ERROR_CANNOT_RESPOND)
     else:
         logging.exception(LOG_COMMAND_ERROR.format(ctx.command.name, error))
         try:
             await ctx.respond(CM_COMMAND_ERROR.format(error), ephemeral=True)
-        except discord.errors.HTTPException:
+        except Exception:
             logging.exception(ERROR_CANNOT_RESPOND)
 
 
