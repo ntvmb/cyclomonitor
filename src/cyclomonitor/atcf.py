@@ -13,6 +13,7 @@ load -- load ATCF data
 get_data -- get ATCF data
 get_data_alt -- get ATCF data (alt source)
 """
+
 import datetime
 import aiohttp
 import asyncio
@@ -27,9 +28,7 @@ from .locales import *
 # causes requests from aiohttp to take much longer than expected, so I have to
 # directly connect to its IP address.
 URL = "https://api.knackwx.com/atcf/v2"
-BASE_URL_NHC = (
-    "https://www.nhc.noaa.gov/storm_graphics/{0}/{1}_5day_cone_with_line_and_wind.png"
-)
+BASE_URL_NHC = "https://www.nhc.noaa.gov/storm_graphics/{0}/{1}_5day_cone.png"
 BASE_URL_NHC_EXPER = "https://www.nhc.noaa.gov/storm_graphics/{0}/{1}_5day_expCone.png"
 BASE_URL_JTWC = "https://www.metoc.navy.mil/jtwc/products/{0}.gif"
 cyclones = []
